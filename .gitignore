@@ -1,0 +1,18 @@
+# Build & Output directories
+**/bin/
+**/obj/
+**/dist/
+**/out/
+**/node_modules/
+
+# Environment & Secrets
+.env
+.env.local
+*.user
+
+# IDE & OS Files
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

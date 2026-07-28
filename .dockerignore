@@ -1,0 +1,12 @@
+.git
+.gitignore
+.vscode
+.idea
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/out/
+*.user
+*.userosscache
+*.suo
