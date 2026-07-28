@@ -29,6 +29,13 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-import_control_tower};Username=${POSTGRES_USER:-ict_user};Password=${POSTGRES_PASSWORD:-ict_password}"
+      JWT_SECRET: ${JWT_SECRET:-DefaultSuperSecretKeyThatIsAtLeast32BytesLongForHS256Algorithm2026!}
+      REFRESH_TOKEN_PEPPER: ${REFRESH_TOKEN_PEPPER:-DefaultSecretPepperKey2026!}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@controltower.local}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-AdminSecurePassword123!}
+      SEED_ADMIN_FULL_NAME: ${SEED_ADMIN_FULL_NAME:-Initial System Administrator}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      FINANCIAL_MODULE_ENABLED: ${FINANCIAL_MODULE_ENABLED:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -57,6 +64,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - ict-network
+
+  api-tests:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: build
+    working_dir: /src
+    command: dotnet test apps/api/ImportControlTower.sln --no-restore --verbosity normal
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ict-network
+
+  web-tests:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: build
+    working_dir: /app
+    command: npm run test
     networks:
       - ict-network
 

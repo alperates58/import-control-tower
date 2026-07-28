@@ -1,59 +1,69 @@
-# Coolify Dağıtım Rehberi (Faz 00)
+# Coolify PAAS Dağıtım Rehberi - Import Control Tower
 
-Bu doküman, **Import Control Tower** projesinin Coolify PAAS platformu üzerinde Docker Compose build pack kullanılarak canlıya alınması adımlarını açıklar.
+Bu doküman, **Import Control Tower** uygulamasının Coolify PAAS ortamında Docker Compose mimarisi ile sıfır kesinti ve yüksek güvenlik standartlarında canlıya alınmasını anlatır.
+
+---
 
 ## 1. Coolify Proje Yapılandırması
 
-1. Coolify paneline giriş yapın ve **New Project** oluşturun:
-   - **Proje Adı:** `Import Control Tower`
-   - **Environment:** `production`
-2. **Add Resource** butonuna tıklayın ve **Private Repository (GitHub App)** seçeneğini işaretleyin.
-3. Repozitörünüzü seçin ve Hedef Branch olarak `main` belirtin.
+Coolify arayüzünde yeni bir **Docker Compose** kaynağı ekleyin ve GitHub repository bağlantısını kurun (`main` dalı).
 
-## 2. Build Pack Yapılandırması
+### Zorunlu Ortam Değişkenleri (Environment Variables)
 
-1. **Build Pack:** `Docker Compose` seçin.
-2. **Docker Compose Location:** `/compose.yaml` (Ana dizin).
-3. **Base Directory:** `/`
-
-## 3. Ortam Değişkenleri (Environment Variables & Secrets)
-
-Coolify arayüzünden **Environment Variables** bölümüne aşağıdaki değerleri ekleyin:
+Coolify panelinde aşağıdaki ortam değişkenlerini üretim ortamı değerleriyle tanımlayın:
 
 ```env
 POSTGRES_USER=ict_prod_user
-POSTGRES_PASSWORD=BURAYA_GÜVENLİ_RASTGELE_BİR_ŞİFRE_YAZIN
+POSTGRES_PASSWORD=STRONG_PRODUCTION_POSTGRES_PASSWORD_HERE
 POSTGRES_DB=import_control_tower_prod
+
+JWT_SECRET=STRONG_PRODUCTION_JWT_SECRET_AT_LEAST_32_BYTES_LONG
+REFRESH_TOKEN_PEPPER=STRONG_PRODUCTION_PEPPER_KEY_HERE
+
+SEED_ADMIN_EMAIL=admin@yourdomain.com
+SEED_ADMIN_PASSWORD=STRONG_PRODUCTION_INITIAL_ADMIN_PASSWORD
+SEED_ADMIN_FULL_NAME=Production System Administrator
+
+ALLOWED_ORIGINS=https://import.yourdomain.com
+FINANCIAL_MODULE_ENABLED=false
 ASPNETCORE_ENVIRONMENT=Production
-WEB_PORT=80
 ```
 
-## 4. Kalıcı Veritabanı Volume (Persistent Storage)
+> [!CAUTION]
+> Production ortamında `SEED_ADMIN_PASSWORD` varsayılan placeholder parolada bırakılırsa API güvenlik kapısı devreye girer ve uygulama başlatılmayı reddeder.
 
-`compose.yaml` içerisindeki `postgres_data` volume tanımı Coolify tarafından otomatik olarak kalıcı hale getirilir.
-- Volume Mount Noktası: `/var/lib/postgresql`
-- PGDATA: `/var/lib/postgresql/18/docker`
+---
 
-Coolify panelinden `db` servisinin kalıcı volume bağlantısını doğrulayın.
+## 2. SSL, HTTPS ve Production Cookie Ayarları
 
-## 5. Domain ve SSL Tanımları
+Production ortamında Coolify ters vekili (Traefik / Nginx) HTTPS sonlandırmasını sağlar.
 
-1. **Frontend (Web):**
-   - Domain: `https://ict.sirketiniz.com` (ya da tanımlı domain)
-   - Port: `80` (Coolify Nginx konteynerinin 80 portunu dış dünyaya bağlar)
-2. **Same-Origin API Yapılandırması:**
-   - Frontend Nginx reverse proxy yapılandırması gereği tüm `/api/` ve `/health/` istekleri iç ağdaki (`ict-network`) `api:8080` servisine yönlendirilir.
+- Production cookie adı: `__Host-ict_refresh_token`
+- Cookie Özellikleri: `Secure=true`, `HttpOnly=true`, `SameSite=Strict`, `Path=/`, `Domain=undefined`
+- `ALLOWED_ORIGINS` değişkenine canlı domain adresi tam olarak girilmelidir (`https://import.yourdomain.com`).
 
-## 6. Health Checks & Zero-Downtime Deployment
+---
 
-`compose.yaml` içerisinde tanımlı olan health check kuralları Coolify tarafından otomatik olarak kullanılır:
-- `db`: `pg_isready`
-- `api`: `/health/live` (HTTP 200 OK)
-- `web`: HTTP 200 OK
+## 3. Excel Yükleme Sınırları & Nginx Konfigürasyonu (Faz 02)
 
-Coolify, yeni konteynerler `Healthy` durumuna geçmeden eski konteynerleri kapatmaz (Zero-downtime deployment).
+Phase 02 toplu Excel sipariş yükleme işlemleri için Nginx ve ASP.NET Core gövde boyut sınırları yapılandırılmıştır:
 
-## 7. Otomatik Otomatik Dağıtım (Auto-Deploy Webhook)
+- **Nginx `client_max_body_size`**: `15M` (15 Megabayt)
+- **ASP.NET Core `FormOptions.MultipartBodyLengthLimit`**: `15MB`
+- **Rate Limiter (`upload-policy`)**: Kullanıcı bazlı dakikada 5 yükleme isteği (`429 Too Many Requests`).
+- **Advisory Lock & Idempotency**: Aynı dosyanın ve onay isteğinin eşzamanlı işlenmesi PostgreSQL `pg_try_advisory_xact_lock` ve `import_confirmation_requests` ile engellenir.
 
-1. Coolify üzerinde **Auto Deploy** seçeneğini aktif edin.
-2. GitHub Repository ayarlarına giderek Coolify Webhook URL'sini `push` olayları için tanımlayın. `main` branch'ine yapılan her push işlemi otomatik olarak Coolify üzerinde derlenecek ve canlıya alınacaktır.
+---
+
+## 4. Veritabanı Persistence & Startup Migration Lock
+
+- PostgreSQL veritabanı verileri `/var/lib/postgresql` mount noktasında `ict_postgres_data` volume'ünde saklanır.
+- Dağıtım sırasında birden fazla API örneği kalkarsa PostgreSQL Connection-Scoped Advisory Lock (`pg_try_advisory_lock(987654321)`) sayesinde veritabanı migration ve seed işlemleri paralel çakışma olmadan sırayla yürütülür.
+
+---
+
+## 5. Canlılık ve Hazırlık Kontrolleri (Health Checks)
+
+Coolify sağlık kontrolleri için aşağıdaki endpointleri kullanır:
+- **Liveness Probe**: `http://localhost:3000/health/live` (200 OK)
+- **Readiness Probe**: `http://localhost:3000/health/ready` (Veritabanı bağlantısı doğrulanmış 200 OK)

@@ -1,228 +1,326 @@
-import { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  FileCheck, 
-  Truck, 
-  Box, 
-  CheckSquare, 
-  FileText, 
-  Activity, 
-  RefreshCw,
-  Server,
-  Database,
-  Clock
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { LoginView } from './views/LoginView';
+import { UserManagementView } from './views/UserManagementView';
+import { RoleManagementView } from './views/RoleManagementView';
+import { AuditLogsView } from './views/AuditLogsView';
+import { ProfileView } from './views/ProfileView';
+import { PurchaseOrderImportView } from './views/PurchaseOrderImportView';
+import { ImportPreviewView } from './views/ImportPreviewView';
+import { ImportHistoryView } from './views/ImportHistoryView';
+import { PurchaseOrderListView } from './views/PurchaseOrderListView';
+import { PurchaseOrderDetailView } from './views/PurchaseOrderDetailView';
+import {
+  IconDashboard,
+  IconOrders,
+  IconCases,
+  IconShipments,
+  IconContainers,
+  IconDocuments,
+  IconTasks,
+  IconUsers,
+  IconRoles,
+  IconAudit,
+  IconFinancial,
+  IconLogout,
+  IconFileSpreadsheet
+} from './components/Icons';
 
-interface SystemInfo {
-  appName: string;
-  version: string;
-  environment: string;
-  serverTimeUtc: string;
-  serverTimeIstanbul: string;
-  databaseStatus: string;
-}
+const MainApp: React.FC = () => {
+  const { user, isAuthenticated, isBootstrapping, logout, hasPermission } = useAuth();
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [healthLive, setHealthLive] = useState<boolean | null>(null);
-  const [healthReady, setHealthReady] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  if (isBootstrapping) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#090d16', color: '#38bdf8', gap: '1rem', fontFamily: 'system-ui' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid #1e293b', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Import Control Tower Yükleniyor...</div>
+      </div>
+    );
+  }
 
-  const menuItems = [
-    { id: 'overview', label: 'Genel Bakış', icon: LayoutDashboard },
-    { id: 'orders', label: 'Satın Alma Siparişleri', icon: ShoppingBag },
-    { id: 'imports', label: 'İthalat Dosyaları', icon: FileCheck },
-    { id: 'shipments', label: 'Sevkiyatlar', icon: Truck },
-    { id: 'containers', label: 'Konteynerler', icon: Box },
-    { id: 'tasks', label: 'Görevler', icon: CheckSquare },
-    { id: 'documents', label: 'Belgeler', icon: FileText },
-    { id: 'system', label: 'Sistem Durumu', icon: Activity },
+  if (!isAuthenticated) {
+    return <LoginView />;
+  }
+
+  const menuSections = [
+    {
+      title: 'Operasyon',
+      items: [
+        { id: 'dashboard', label: 'Genel Bakış', perm: 'dashboard.view', icon: <IconDashboard /> },
+        { id: 'purchase-orders', label: 'Satın Alma Siparişleri', perm: 'purchaseorders.view', icon: <IconOrders /> },
+        { id: 'po-import', label: 'Excel İçe Aktarma', perm: 'purchaseorders.import', icon: <IconFileSpreadsheet /> },
+        { id: 'po-history', label: 'Aktarım Geçmişi', perm: 'purchaseorders.import', icon: <IconFileSpreadsheet /> },
+        { id: 'import-cases', label: 'İthalat Dosyaları', perm: 'importcases.view', icon: <IconCases /> },
+        { id: 'shipments', label: 'Sevkiyatlar', perm: 'shipments.view', icon: <IconShipments /> },
+        { id: 'containers', label: 'Konteyner Takibi', perm: 'containers.view', icon: <IconContainers /> },
+        { id: 'documents', label: 'Evraklar', perm: 'documents.view', icon: <IconDocuments /> },
+        { id: 'tasks', label: 'Görevlerim', perm: 'tasks.view_own', icon: <IconTasks /> }
+      ]
+    },
+    {
+      title: 'Yönetim & Güvenlik',
+      items: [
+        { id: 'users', label: 'Kullanıcı Yönetimi', perm: 'users.view', icon: <IconUsers /> },
+        { id: 'roles', label: 'Rol Yönetimi', perm: 'roles.view', icon: <IconRoles /> },
+        { id: 'audit', label: 'Audit Logları', perm: 'audit.view', icon: <IconAudit /> },
+        { id: 'financials', label: 'Finansal Analiz', perm: 'financial.view', icon: <IconFinancial /> }
+      ]
+    }
   ];
 
-  const fetchSystemData = async () => {
-    setLoading(true);
-    try {
-      // Fetch System Info
-      const infoRes = await fetch('/api/v1/system/info');
-      if (infoRes.ok) {
-        const data = await infoRes.json();
-        setSystemInfo(data);
-      } else {
-        setSystemInfo(null);
-      }
-
-      // Fetch Liveness
-      const liveRes = await fetch('/health/live');
-      setHealthLive(liveRes.ok);
-
-      // Fetch Readiness
-      const readyRes = await fetch('/health/ready');
-      setHealthReady(readyRes.ok);
-    } catch (err) {
-      console.error('Error connecting to backend:', err);
-      setSystemInfo(null);
-      setHealthLive(false);
-      setHealthReady(false);
-    } finally {
-      setLoading(false);
+  const getActiveTabTitle = () => {
+    for (const sec of menuSections) {
+      const found = sec.items.find(i => i.id === activeTab);
+      if (found) return found.label;
     }
+    if (activeTab === 'profile') return 'Kullanıcı Profili';
+    if (activeTab === 'po-preview') return 'İçe Aktarma Ön İzlemesi';
+    if (activeTab === 'po-detail') return 'Sipariş Detayı';
+    return 'Genel Bakış';
   };
 
-  useEffect(() => {
-    fetchSystemData();
-    const interval = setInterval(fetchSystemData, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <div className="app-container">
+    <div className="app-layout">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-icon">ICT</div>
-          <div className="brand-text">
+      <aside className="app-sidebar">
+        <div className="sidebar-header">
+          <div className="brand-logo-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg>
+          </div>
+          <div className="brand-title-group">
             <h1>Control Tower</h1>
-            <span>Faz 00 Foundation</span>
+            <span>Import Tower v0.2</span>
           </div>
         </div>
 
-        <ul className="nav-list">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+        <nav className="sidebar-nav">
+          {menuSections.map((sec, idx) => {
+            const visibleItems = sec.items.filter(item => hasPermission(item.perm));
+            if (visibleItems.length === 0) return null;
             return (
-              <li
-                key={item.id}
-                className={`nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => setActiveTab(item.id)}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </li>
+              <div key={idx}>
+                <div className="nav-section-title">{sec.title}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  {visibleItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`nav-item-btn ${activeTab === item.id ? 'active' : ''}`}
+                    >
+                      <span className="nav-icon">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </nav>
+
+        {/* User Footer */}
+        <div className="sidebar-user-footer">
+          <div
+            className="user-profile-card"
+            onClick={() => setActiveTab('profile')}
+            title="Profil ve Güvenlik Ayarları"
+          >
+            <div className="avatar-circle">
+              {user?.fullName?.charAt(0) || 'U'}
+            </div>
+            <div className="user-info-text">
+              <div className="user-name">{user?.fullName}</div>
+              <div className="user-role-badge">{user?.roles.join(', ')}</div>
+            </div>
+          </div>
+
+          <button onClick={logout} className="btn-logout">
+            <IconLogout />
+            <span>Güvenli Çıkış</span>
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="main-wrapper">
-        <header className="top-header">
-          <div className="header-title">
-            {menuItems.find((m) => m.id === activeTab)?.label}
+      {/* Main Content */}
+      <div className="app-main">
+        <header className="app-topbar">
+          <div className="topbar-title-group">
+            <h2>{getActiveTabTitle()}</h2>
           </div>
-          <div className="header-actions">
-            <span className="badge-environment">
-              {systemInfo?.environment || 'FAZ-00'}
-            </span>
-            <button className="btn-refresh" onClick={fetchSystemData} disabled={loading}>
-              <RefreshCw size={14} className={loading ? 'spin' : ''} />
-            </button>
+
+          <div className="topbar-right-controls">
+            <div className="status-badge-pill">
+              <span className="pulse-dot"></span>
+              <span>Canlı Bağlantı — PostgreSQL 18</span>
+            </div>
           </div>
         </header>
 
-        <main className="content-area">
-          {activeTab === 'overview' || activeTab === 'system' ? (
-            <div>
-              <h2>Sistem Temel Altyapı Durumu</h2>
-              <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                Import Control Tower Faz 00 teknik altyapı metrikleri ve servis durumları.
-              </p>
-
-              <div className="dashboard-grid">
-                {/* API Status Card */}
-                <div className="card">
-                  <div className="card-header">
-                    <div className="card-title">
-                      <Server size={18} color="var(--accent-blue)" />
-                      <span>API Servis Durumu</span>
-                    </div>
-                    <span className={`status-indicator ${healthLive ? 'status-online' : 'status-offline'}`} />
+        <main className="content-viewport">
+          {activeTab === 'dashboard' && (
+            <ProtectedRoute requiredPermission="dashboard.view">
+              <div className="kpi-grid">
+                <div className="kpi-card">
+                  <div className="kpi-card-header">
+                    <span className="kpi-title">Aktif Oturum</span>
+                    <div className="kpi-icon-box"><IconUsers /></div>
                   </div>
-                  <div className="info-list">
-                    <div className="info-row">
-                      <span className="info-label">Uygulama:</span>
-                      <span className="info-value">{systemInfo?.appName || 'Bağlanıyor...'}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label">Sürüm:</span>
-                      <span className="info-value">{systemInfo?.version || '-'}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label">Liveness (/health/live):</span>
-                      <span className="info-value">{healthLive ? '200 OK' : 'Hata'}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label">Readiness (/health/ready):</span>
-                      <span className="info-value">{healthReady ? '200 OK' : 'Bekleniyor'}</span>
-                    </div>
-                  </div>
+                  <div className="kpi-value">{user?.email}</div>
+                  <div className="kpi-subtext">Güvenli JWT / Refresh Cookie Aktif</div>
                 </div>
 
-                {/* Database Status Card */}
-                <div className="card">
-                  <div className="card-header">
-                    <div className="card-title">
-                      <Database size={18} color="var(--accent-emerald)" />
-                      <span>Veritabanı (PostgreSQL 18)</span>
-                    </div>
-                    <span className={`status-indicator ${systemInfo?.databaseStatus === 'Connected' ? 'status-online' : 'status-offline'}`} />
+                <div className="kpi-card">
+                  <div className="kpi-card-header">
+                    <span className="kpi-title">Erişim Rolü</span>
+                    <div className="kpi-icon-box"><IconRoles /></div>
                   </div>
-                  <div className="info-list">
-                    <div className="info-row">
-                      <span className="info-label">PostgreSQL Bağlantısı:</span>
-                      <span className="info-value">{systemInfo?.databaseStatus || 'Kontrol ediliyor...'}</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label">Migration Tablosu:</span>
-                      <span className="info-value">system_migrations (Aktif)</span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label">ORM:</span>
-                      <span className="info-value">EF Core 10</span>
-                    </div>
-                  </div>
+                  <div className="kpi-value" style={{ color: '#38bdf8' }}>{user?.roles[0]}</div>
+                  <div className="kpi-subtext">Tam Yetkili Sistem Yöneticisi</div>
                 </div>
 
-                {/* Server Time Card */}
-                <div className="card">
-                  <div className="card-header">
-                    <div className="card-title">
-                      <Clock size={18} color="var(--accent-cyan)" />
-                      <span>Zaman Dönüşüm Servisi</span>
-                    </div>
+                <div className="kpi-card">
+                  <div className="kpi-card-header">
+                    <span className="kpi-title">Toplam İzin</span>
+                    <div className="kpi-icon-box"><IconAudit /></div>
                   </div>
-                  <div className="info-list">
-                    <div className="info-row">
-                      <span className="info-label">Sunucu UTC Zamanı:</span>
-                      <span className="info-value">
-                        {systemInfo?.serverTimeUtc 
-                          ? new Date(systemInfo.serverTimeUtc).toISOString() 
-                          : '-'}
-                      </span>
+                  <div className="kpi-value" style={{ color: '#10b981' }}>{user?.permissions.length} / 32</div>
+                  <div className="kpi-subtext">Katalog İzin Sayısı Doğrulandı</div>
+                </div>
+              </div>
+
+              <div className="panel">
+                <div className="panel-header">
+                  <div className="panel-title">
+                    <IconDashboard />
+                    <span>Faz 02 — Excel Sipariş İçe Aktarma Aktif</span>
+                  </div>
+                </div>
+                <div style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>
+                  <p style={{ marginBottom: '1rem' }}>
+                    Açık satın alma siparişlerinizi Excel (.xlsx) üzerinden güvenli ve transactional biçimde yüklemek için sol menüdeki <strong>Excel İçe Aktarma</strong> sekmesini kullanabilirsiniz.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
+                    <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                      <div style={{ fontWeight: 600, color: '#38bdf8', marginBottom: '0.4rem' }}>📊 Forward-Only ExcelDataReader</div>
+                      <div style={{ fontSize: '0.85rem' }}>Bütün workbook belleğe yüklenmeden yüksek hızlı veri okuma sağlandı.</div>
                     </div>
-                    <div className="info-row">
-                      <span className="info-label">Türkiye Gösterim Zamanı:</span>
-                      <span className="info-value">{systemInfo?.serverTimeIstanbul || '-'}</span>
+                    <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <div style={{ fontWeight: 600, color: '#10b981', marginBottom: '0.4rem' }}>🛡️ Idempotent & Single Transaction</div>
+                      <div style={{ fontSize: '0.85rem' }}>Tek transaction ile veri bütünlüğü ve idempotency request takibi kuruldu.</div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div>
-              <h2>{menuItems.find((m) => m.id === activeTab)?.label}</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
-                Bu modül henüz kurulmadı (Faz 01 sonrası aktif edilecek).
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'po-import' && (
+            <ProtectedRoute requiredPermission="purchaseorders.import">
+              <PurchaseOrderImportView
+                onBatchCreated={(batchId) => {
+                  setSelectedBatchId(batchId);
+                  setActiveTab('po-preview');
+                }}
+              />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'po-preview' && selectedBatchId && (
+            <ProtectedRoute requiredPermission="purchaseorders.import">
+              <ImportPreviewView
+                batchId={selectedBatchId}
+                onBack={() => setActiveTab('po-import')}
+                onConfirmSuccess={() => setActiveTab('purchase-orders')}
+              />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'po-history' && (
+            <ProtectedRoute requiredPermission="purchaseorders.import">
+              <ImportHistoryView
+                onSelectBatch={(batchId) => {
+                  setSelectedBatchId(batchId);
+                  setActiveTab('po-preview');
+                }}
+              />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'purchase-orders' && (
+            <ProtectedRoute requiredPermission="purchaseorders.view">
+              <PurchaseOrderListView
+                onSelectOrder={(orderId) => {
+                  setSelectedOrderId(orderId);
+                  setActiveTab('po-detail');
+                }}
+              />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'po-detail' && selectedOrderId && (
+            <ProtectedRoute requiredPermission="purchaseorders.view">
+              <PurchaseOrderDetailView
+                orderId={selectedOrderId}
+                onBack={() => setActiveTab('purchase-orders')}
+              />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'users' && (
+            <ProtectedRoute requiredPermission="users.view">
+              <UserManagementView />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'roles' && (
+            <ProtectedRoute requiredPermission="roles.view">
+              <RoleManagementView />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'audit' && (
+            <ProtectedRoute requiredPermission="audit.view">
+              <AuditLogsView />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'profile' && (
+            <ProfileView />
+          )}
+
+          {!['dashboard', 'po-import', 'po-preview', 'po-history', 'purchase-orders', 'po-detail', 'users', 'roles', 'audit', 'profile'].includes(activeTab) && (
+            <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📦</div>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                {menuSections.flatMap(s => s.items).find(m => m.id === activeTab)?.label}
+              </h2>
+              <p style={{ color: '#94a3b8', maxWidth: '500px', margin: '0 auto 1.5rem' }}>
+                Bu modül sonraki fazlarda entegre edilecektir.
               </p>
-              <div className="placeholder-box">
-                <p>Faz 00 Temel Altyapı modülüdür. İş modülleri ve veritabanı tabloları sonraki fazlarda eklenecektir.</p>
-              </div>
+              <button className="btn-secondary" onClick={() => setActiveTab('dashboard')}>
+                Genel Bakışa Dön
+              </button>
             </div>
           )}
         </main>
       </div>
     </div>
   );
+};
+
+export function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
 }
+
+export default App;

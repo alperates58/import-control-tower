@@ -1,108 +1,87 @@
-# Import Control Tower
+# Import Control Tower (İthalat Kontrol Kulesi)
 
-Şirketin Çin başta olmak üzere yurt dışı satın alma siparişlerini; tedarikçi üretiminden fabrika stok girişine kadar tek merkezden yöneten ithalat operasyon platformu.
-
----
-
-## Faz 00 — Temel Altyapı (Foundation)
-
-Bu proje monorepo mimarisinde geliştirilmektedir:
-- **`apps/api`**: ASP.NET Core 10 Web API (Clean Modular Monolith)
-- **`apps/web`**: React 19.2 + TypeScript + Vite + Nginx
-- **Veritabanı**: PostgreSQL 18 (`postgres:18-alpine`)
-- **Konteyner Yönetimi**: Docker Compose & Coolify
+Kurumsal ithalat ve tedarik zinciri operasyonlarının uçtan uca izlenebilirliğini, evrak takibini, finansal gizliliği ve rol bazlı erişim kontrolünü sağlayan monolitik web uygulaması.
 
 ---
 
-## Hızlı Başlangıç (Docker Compose)
+## Teknoloji Yığını
 
-Projeyi yerel ortamda tüm bağımlılıklarıyla birlikte çalıştırmak için tek komut yeterlidir:
+- **Backend**: ASP.NET Core 10 Web API (Clean Modular Monolith mimarisi)
+- **Identity & Security**: ASP.NET Core Identity, JWT Bearer, Peppered SHA-256 Refresh Token Rotation, `__Host-` Cookie, CSRF Middleware, Rate Limiting, Advisory Locking
+- **Excel & Document Engine**: OpenXML v3.2.0 Security Scanner, ExcelDataReader v3.7.0 Forward-Only Streaming Engine
+- **ORM & Database**: EF Core 10, Npgsql, PostgreSQL 18 (`postgres:18-alpine`), Shadow Property `xmin` Row Version Concurrency Mapping
+- **Frontend**: React 19, TypeScript, Vite, Nginx Reverse Proxy
+- **Orkestrasyon**: Docker Compose, Coolify PAAS
 
-### 1. Yerel Uygulamayı Başlatma
+---
+
+## Hızlı Başlangıç (Geliştirme Ortamı)
+
+### 1. Ortam Değişkenlerini Hazırlama
 ```bash
-docker compose up -d --build
+cp .env.example .env
 ```
-Başlatılan servisler:
-- **Frontend App Shell (Nginx)**: [http://localhost:3000](http://localhost:3000)
-- **API Swagger / Scalar UI**: [http://localhost:3000/api/v1/system/info](http://localhost:3000/api/v1/system/info) (Reverse proxy üzerinden) veya doğrudan API debug portu [http://localhost:8080/scalar/v1](http://localhost:8080/scalar/v1)
-- **PostgreSQL 18**: `localhost:5432`
 
-### 2. Docker Yapılandırma Doğrulama ve Derleme
+### 2. Docker Compose Servislerini Başlatma
 ```bash
-# Docker compose dosya doğrulaması
-docker compose config
-
-# İmajların derlenmesi
 docker compose build
+docker compose up -d
 ```
 
-### 3. Testleri Çalıştırma
+### 3. Servis Durumlarını Kontrol Etme
 ```bash
-# Backend Unit ve Integration testlerini API konteyneri içinde koşturma
-docker compose exec api dotnet test apps/api/ImportControlTower.sln
+docker compose ps
 ```
 
-### 4. Sağlık (Health Check) ve Sistem Endpoint Kontrolleri
-```bash
-# Web Shell
-curl http://localhost:3000
+Erişim Adresleri:
+- **Web Arayüzü**: http://localhost:3000
+- **API Health Check**: http://localhost:3000/health/live
+- **API System Info**: http://localhost:3000/api/v1/system/info
 
-# API Sistem Bilgisi (Nginx Reverse Proxy üzerinden)
-curl http://localhost:3000/api/v1/system/info
+---
 
-# Liveness Check
-curl http://localhost:3000/health/live
+## Testleri Çalıştırma
 
-# Readiness Check (PostgreSQL Bağlantı Kontrolü)
-curl http://localhost:3000/health/ready
-```
-
-### 5. Veritabanı Migration İşlemleri
-Uygulama açılışta `system_migrations` tablosunu içeren veritabanı migration'larını otomatik olarak uygular. Yeni bir migration oluşturmak gerektiğinde:
+Konteynerleştirilmiş SDK test çalıştırıcılarını kullanın:
 
 ```bash
-# API konteyneri içinden migration ekleme:
-docker compose exec api dotnet ef migrations add InitialCreate --project src/ImportControlTower.Infrastructure --startup-project src/ImportControlTower.Api
-```
+# Backend Integration ve Unit Testleri (xUnit)
+docker compose run --rm api-tests
 
-### 6. Canlı Log İzleme
-```bash
-# Tüm servislerin loglarını izleme
-docker compose logs -f
+# Frontend Tip ve Birim Testleri (TypeScript / React)
+docker compose run --rm web-tests
 
-# Yalnızca API logları
-docker compose logs -f api
-
-# Yalnızca PostgreSQL logları
-docker compose logs -f db
-```
-
-### 7. Uygulamayı Durdurma ve Volume Koruma
-```bash
-# Servisleri durdur (Veritabanı verileri kalıcı volume içinde korunur)
-docker compose down
-
-# Sıfırlamak ve volume'leri silmek isterseniz:
-docker compose down -v
+# 20,000 Satırlık Yüksek Hacim Performans Benchmark Testi
+docker compose run --rm api-tests dotnet test /src/tests/api-integration/ImportControlTower.Api.IntegrationTests.csproj --filter "FullyQualifiedName~BenchmarkTests"
 ```
 
 ---
 
-## Klasör Yapısı
+## Fazlar ve Modüller
 
-```text
-import-control-tower/
-├── apps/
-│   ├── api/          # ASP.NET Core 10 Web API Monolith
-│   └── web/          # React 19 + TypeScript Frontend Shell
-├── tests/
-│   ├── api-unit/     # Backend Unit Testleri
-│   └── api-integration/ # Backend Integration Testleri
-├── infra/            # Docker ve Script yapılandırmaları
-├── docs/             # Dokümantasyon ve Coolify Dağıtım Rehberi
-├── compose.yaml      # Üretim & Coolify Docker Compose
-├── compose.override.yaml # Yerel geliştirme port haritalaması
-├── .env.example      # Örnek ortam değişkenleri
-├── OPEN_QUESTIONS.md # Faz 01 açık konuları
-└── IMPLEMENTATION_REPORT.md # Faz 00 Doğrulama ve Uygulama Raporu
-```
+### Kimlik ve Yönetim (Faz 01)
+Sistem varsayılan olarak **32 izinlik merkezi izin kataloğu** ve 7 varsayılan rol ile başlatılır:
+- **SystemAdmin**: Tüm sistem izinleri
+- **Management**: Üst yönetim izleme (Finans hariç)
+- **Purchasing**: Satın alma operasyonları
+- **ImportOperations**: İthalat ve evrak takibi
+- **Planning**: Üretim ve ihtiyaç planlama
+- **Finance**: Finansal modül yetkilisi
+- **Viewer**: Salt okunur izleyici
+
+Varsayılan Admin Hesabı (`.env` üzerinden değiştirilebilir):
+- **E-Posta**: `admin@controltower.local`
+- **Parola**: `AdminSecurePassword123!`
+
+### Excel Sipariş İçe Aktarma (Faz 02)
+- **OpenXML Güvenlik Tarama**: Formül hücre engelleme (`FORMULA_NOT_ALLOWED`), OLE/Gömülü nesne engelleme, harici bağlantı engelleme ve ZIP bomba tespiti.
+- **ExcelDataReader Streaming**: Bellek verimliliği yüksek forward-only okuma motoru.
+- **Otomatik Başlık Eşleme & Normalizasyon**: Türkçe/İngilizce alan takma adları, baştaki sıfırların korunması (`000123`), tarih format doğrulaması (`SAS Tarihi`).
+- **Advisory Lock & Idempotent Confirmation**: Çakışan eşzamanlı yükleme ve onaylamalarda PostgreSQL connection-scoped advisory lock ve `import_confirmation_requests` idempotent yanıt takibi.
+- **Sıfır Finansal Alan Garantisi**: Faz 02 veritabanı tabloları, DTO'lar, API endpoint'leri ve kullanıcı arayüzü finansal verilerden tamamen izole edilmiştir.
+
+---
+
+## Lisans
+
+Tüm hakları saklıdır. Kurumsal özel mülk yazılımdır.
