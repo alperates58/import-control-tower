@@ -11,10 +11,12 @@ export const PurchaseOrderImportView: React.FC<PurchaseOrderImportViewProps> = (
   const { authenticatedFetch } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [conflictBatchId, setConflictBatchId] = useState<string | null>(null);
 
   const handleFileSelected = async (file: File) => {
     setIsLoading(true);
     setErrorMessage(null);
+    setConflictBatchId(null);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -33,6 +35,10 @@ export const PurchaseOrderImportView: React.FC<PurchaseOrderImportViewProps> = (
         onBatchCreated(data.batch.id);
       } else {
         const errData = await response.json().catch(() => null);
+        const bId = errData?.batchId || errData?.extensions?.batchId;
+        if (bId) {
+          setConflictBatchId(bId);
+        }
         setErrorMessage(errData?.detail || errData?.title || 'Dosya yüklenirken bir hata oluştu.');
       }
     } catch (err: any) {
@@ -111,6 +117,27 @@ export const PurchaseOrderImportView: React.FC<PurchaseOrderImportViewProps> = (
           isLoading={isLoading}
           errorMessage={errorMessage}
         />
+        {conflictBatchId && (
+          <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+            <button
+              onClick={() => onBatchCreated(conflictBatchId)}
+              style={{
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
+                background: '#3b82f6',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Devam Eden Aktarım Ekranına Git &rarr;
+            </button>
+          </div>
+        )}
       </div>
 
       <div style={{ background: 'rgba(15, 23, 42, 0.4)', borderRadius: '16px', padding: '1.5rem', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
