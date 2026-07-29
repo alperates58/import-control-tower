@@ -605,6 +605,22 @@ public class ExcelParserService : IExcelParserService
             }
             sheetData1.AppendChild(headerRow);
 
+            // Add Sample Rows (Formatted as String to avoid IDENTIFIER_STORED_AS_NUMBER warnings)
+            var sampleRows = new[]
+            {
+                new[] { "PO-2026-001", "AEROBALL", "25.07.2026", "50000001", "Rulman 6202", "100", "100", "01.08.2026" },
+                new[] { "PO-2026-001", "AEROBALL", "25.07.2026", "50000002", "Rulman 6203", "50", "50", "01.08.2026" }
+            };
+            foreach (var sample in sampleRows)
+            {
+                var row = new Row();
+                foreach (var val in sample)
+                {
+                    row.AppendChild(new Cell { DataType = CellValues.String, CellValue = new CellValue(val) });
+                }
+                sheetData1.AppendChild(row);
+            }
+
             // Sheet 2: Açıklama
             var worksheetPart2 = workbookPart.AddNewPart<WorksheetPart>();
             var sheetData2 = new SheetData();
