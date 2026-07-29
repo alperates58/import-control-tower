@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ImportStatusBadge } from '../components/ImportStatusBadge';
+import { useAuth } from '../context/AuthContext';
 
 interface ImportHistoryViewProps {
   onSelectBatch: (batchId: string) => void;
 }
 
 export const ImportHistoryView: React.FC<ImportHistoryViewProps> = ({ onSelectBatch }) => {
+  const { authenticatedFetch } = useAuth();
   const [batches, setBatches] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -14,7 +16,7 @@ export const ImportHistoryView: React.FC<ImportHistoryViewProps> = ({ onSelectBa
   const fetchHistory = async (p = 1) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/v1/purchase-order-imports?page=${p}&pageSize=15`);
+      const res = await authenticatedFetch(`/api/v1/purchase-order-imports?page=${p}&pageSize=15`);
       if (res.ok) {
         const data = await res.json();
         setBatches(data.items);

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 interface PurchaseOrderListViewProps {
   onSelectOrder: (orderId: string) => void;
 }
 
 export const PurchaseOrderListView: React.FC<PurchaseOrderListViewProps> = ({ onSelectOrder }) => {
+  const { authenticatedFetch } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -16,7 +18,7 @@ export const PurchaseOrderListView: React.FC<PurchaseOrderListViewProps> = ({ on
     try {
       let url = `/api/v1/purchase-orders?page=${p}&pageSize=15`;
       if (q) url += `&search=${encodeURIComponent(q)}`;
-      const res = await fetch(url);
+      const res = await authenticatedFetch(url);
       if (res.ok) {
         const data = await res.json();
         setOrders(data.items);

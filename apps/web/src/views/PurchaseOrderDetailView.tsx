@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IconArrowLeft } from '../components/Icons';
+import { useAuth } from '../context/AuthContext';
 
 interface PurchaseOrderDetailViewProps {
   orderId: string;
@@ -7,6 +8,7 @@ interface PurchaseOrderDetailViewProps {
 }
 
 export const PurchaseOrderDetailView: React.FC<PurchaseOrderDetailViewProps> = ({ orderId, onBack }) => {
+  const { authenticatedFetch } = useAuth();
   const [po, setPo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -14,7 +16,7 @@ export const PurchaseOrderDetailView: React.FC<PurchaseOrderDetailViewProps> = (
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/v1/purchase-orders/${orderId}`);
+        const res = await authenticatedFetch(`/api/v1/purchase-orders/${orderId}`);
         if (res.ok) {
           const data = await res.json();
           setPo(data);

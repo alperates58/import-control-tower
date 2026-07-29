@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ImportStatusBadge } from '../components/ImportStatusBadge';
 import { ColumnMappingModal } from '../components/ColumnMappingModal';
 import { IconArrowLeft } from '../components/Icons';
+import { useAuth } from '../context/AuthContext';
 
 interface ImportPreviewViewProps {
   batchId: string;
@@ -10,6 +11,7 @@ interface ImportPreviewViewProps {
 }
 
 export const ImportPreviewView: React.FC<ImportPreviewViewProps> = ({ batchId, onBack, onConfirmSuccess }) => {
+  const { authenticatedFetch } = useAuth();
   const [batchData, setBatchData] = useState<any>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [page, setPage] = useState(1);
@@ -22,7 +24,7 @@ export const ImportPreviewView: React.FC<ImportPreviewViewProps> = ({ batchId, o
 
   const fetchBatchDetail = async () => {
     try {
-      const res = await fetch(`/api/v1/purchase-order-imports/${batchId}`);
+      const res = await authenticatedFetch(`/api/v1/purchase-order-imports/${batchId}`);
       if (res.ok) {
         const data = await res.json();
         setBatchData(data);
@@ -37,7 +39,7 @@ export const ImportPreviewView: React.FC<ImportPreviewViewProps> = ({ batchId, o
     try {
       let url = `/api/v1/purchase-order-imports/${batchId}/rows?page=${p}&pageSize=20`;
       if (stat) url += `&status=${stat}`;
-      const res = await fetch(url);
+      const res = await authenticatedFetch(url);
       if (res.ok) {
         const data = await res.json();
         setRows(data.items);
@@ -63,7 +65,7 @@ export const ImportPreviewView: React.FC<ImportPreviewViewProps> = ({ batchId, o
     const idempotencyKey = crypto.randomUUID();
 
     try {
-      const res = await fetch(`/api/v1/purchase-order-imports/${batchId}/confirm`, {
+      const res = await authenticatedFetch(`/api/v1/purchase-order-imports/${batchId}/confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

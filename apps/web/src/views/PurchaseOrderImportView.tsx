@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { FileUploader } from '../components/FileUploader';
 import { IconFileSpreadsheet } from '../components/Icons';
+import { useAuth } from '../context/AuthContext';
 
 interface PurchaseOrderImportViewProps {
   onBatchCreated: (batchId: string) => void;
 }
 
 export const PurchaseOrderImportView: React.FC<PurchaseOrderImportViewProps> = ({ onBatchCreated }) => {
+  const { authenticatedFetch } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -18,7 +20,7 @@ export const PurchaseOrderImportView: React.FC<PurchaseOrderImportViewProps> = (
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/v1/purchase-order-imports/upload', {
+      const response = await authenticatedFetch('/api/v1/purchase-order-imports/upload', {
         method: 'POST',
         headers: {
           'X-ICT-CSRF-Protection': '1'
@@ -40,8 +42,25 @@ export const PurchaseOrderImportView: React.FC<PurchaseOrderImportViewProps> = (
     }
   };
 
-  const handleDownloadTemplate = () => {
-    window.open('/api/v1/purchase-order-imports/template', '_blank');
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await authenticatedFetch('/api/v1/purchase-order-imports/template');
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'purchase-order-import-template.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        setErrorMessage('Şablon indirilemedi (Yetkisiz erişim veya sunucu hatası).');
+      }
+    } catch (err) {
+      setErrorMessage('Şablon indirilirken bir bağlantı hatası oluştu.');
+    }
   };
 
   return (
