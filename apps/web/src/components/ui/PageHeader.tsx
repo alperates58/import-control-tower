@@ -27,7 +27,7 @@ export const Tabs: React.FC<{ tabs: TabItem[]; activeTab: string; onChange: (id:
   activeTab,
   onChange
 }) => (
-  <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '1px solid var(--border-color)', marginBottom: 'var(--space-5)' }}>
+  <div className="tabs-container">
     {tabs.map((tab) => {
       const isActive = tab.id === activeTab;
       return (
