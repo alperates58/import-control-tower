@@ -86,6 +86,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    labels:
+      - "traefik.docker.network=coolify"
     networks:
       - coolify
       - ict-internal-network
