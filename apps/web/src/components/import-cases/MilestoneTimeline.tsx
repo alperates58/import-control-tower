@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { ShipmentMilestone } from '../../types/importCase';
 import { importCaseService } from '../../services/importCaseService';
 import { useAuth } from '../../context/AuthContext';
+import { Button } from '../ui/Button';
+import { Input, Select, FormField } from '../ui/Input';
+import { Badge } from '../ui/Badge';
+import { Section } from '../ui/Card';
 
 interface Props {
   shipmentId: string;
@@ -51,141 +55,122 @@ export const MilestoneTimeline: React.FC<Props> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
       {errorMsg && (
-        <div style={{ padding: '0.85rem 1rem', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: '8px', color: 'var(--accent-rose)', fontSize: '0.85rem' }}>
-          ⚠️ {errorMsg}
+        <div style={{ marginBottom: 'var(--space-2)' }}>
+          <Badge variant="rose" style={{ width: '100%', padding: '0.75rem' }}>
+            ⚠️ {errorMsg}
+          </Badge>
         </div>
       )}
 
-      {/* Milestone Form Card */}
-      <div className="panel" style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '1.25rem', marginBottom: 0 }}>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>📍</span> Kilometre Taşı (Milestone Event) Girişi
-        </h4>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
-          <div>
-            <label className="form-label">Aşama / Event *</label>
-            <select
+      <Section title="📍 Kilometre Taşı (Milestone Event) Girişi">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)', alignItems: 'flex-end' }}>
+          <FormField label="Aşama / Event *" required>
+            <Select
               value={milestoneType}
               onChange={(e) => setMilestoneType(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
-            >
-              <option value="BookingConfirmed">Booking Confirmed</option>
-              <option value="CargoReceived">Cargo Received</option>
-              <option value="GateIn">Gate In (Liman Giriş)</option>
-              <option value="VesselLoaded">Vessel Loaded (Yükleme)</option>
-              <option value="DepartureFromPort">Departure From Port (Kalkış)</option>
-              <option value="Transshipment">Transshipment (Aktarma)</option>
-              <option value="ArrivalAtPort">Arrival At Port (Varış)</option>
-              <option value="Discharged">Discharged (Tahliye)</option>
-              <option value="CustomsCleared">Customs Cleared (Gümrük)</option>
-              <option value="GateOut">Gate Out (Liman Çıkış)</option>
-              <option value="WarehouseDelivered">Warehouse Delivered (Depo Varış)</option>
-            </select>
-          </div>
+              options={[
+                { value: 'BookingConfirmed', label: 'Booking Confirmed' },
+                { value: 'CargoReceived', label: 'Cargo Received' },
+                { value: 'GateIn', label: 'Gate In (Liman Giriş)' },
+                { value: 'VesselLoaded', label: 'Vessel Loaded (Yükleme)' },
+                { value: 'DepartureFromPort', label: 'Departure From Port (Kalkış)' },
+                { value: 'Transshipment', label: 'Transshipment (Aktarma)' },
+                { value: 'ArrivalAtPort', label: 'Arrival At Port (Varış)' },
+                { value: 'Discharged', label: 'Discharged (Tahliye)' },
+                { value: 'CustomsCleared', label: 'Customs Cleared (Gümrük)' },
+                { value: 'GateOut', label: 'Gate Out (Liman Çıkış)' },
+                { value: 'WarehouseDelivered', label: 'Warehouse Delivered (Depo Varış)' }
+              ]}
+            />
+          </FormField>
 
-          <div>
-            <label className="form-label">Lokasyon</label>
-            <input
+          <FormField label="Lokasyon">
+            <Input
               type="text"
               placeholder="Örn: Ningbo Port / Ambarlı"
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="form-label">Zaman Dilimi (IANA)</label>
-            <select
+          <FormField label="Zaman Dilimi (IANA)">
+            <Select
               value={timezoneId}
               onChange={(e) => setTimezoneId(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
-            >
-              <option value="Europe/Istanbul">Europe/Istanbul (+03:00)</option>
-              <option value="Asia/Shanghai">Asia/Shanghai (+08:00)</option>
-              <option value="Europe/Berlin">Europe/Berlin (+01:00/+02:00)</option>
-              <option value="UTC">UTC (+00:00)</option>
-            </select>
-          </div>
+              options={[
+                { value: 'Europe/Istanbul', label: 'Europe/Istanbul (+03:00)' },
+                { value: 'Asia/Shanghai', label: 'Asia/Shanghai (+08:00)' },
+                { value: 'Europe/Berlin', label: 'Europe/Berlin (+01:00/+02:00)' },
+                { value: 'UTC', label: 'UTC (+00:00)' }
+              ]}
+            />
+          </FormField>
 
-          <div>
-            <label className="form-label">Planlanan Tarih/Saat</label>
-            <input
+          <FormField label="Planlanan Tarih/Saat">
+            <Input
               type="datetime-local"
               value={plannedAt}
               onChange={(e) => setPlannedAt(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="form-label">Gerçekleşen Tarih/Saat</label>
-            <input
+          <FormField label="Gerçekleşen Tarih/Saat">
+            <Input
               type="datetime-local"
               value={actualAt}
               onChange={(e) => setActualAt(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <button
-              disabled={loading}
-              onClick={handleAddMilestone}
-              className="btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              {loading ? 'Kaydediliyor...' : '+ Aşama Ekle'}
-            </button>
-          </div>
+          <Button
+            disabled={loading}
+            onClick={handleAddMilestone}
+            variant="primary"
+            isLoading={loading}
+            style={{ width: '100%', justifyContent: 'center' }}
+          >
+            + Aşama Ekle
+          </Button>
         </div>
-      </div>
+      </Section>
 
       {/* Timeline Display */}
       {milestones.length === 0 ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+        <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--font-sm)' }}>
           Henüz sevkiyata ait aşama kaydı bulunmamaktadır.
         </div>
       ) : (
-        <div style={{ position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px dashed var(--border-color)', margin: '1rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px dashed var(--border-subtle)', margin: 'var(--space-3) var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {milestones.sort((a, b) => a.sequenceNumber - b.sequenceNumber).map((m) => (
             <div key={m.id} style={{ position: 'relative' }}>
-              {/* Bullet Node */}
               <div style={{
                 position: 'absolute',
                 left: '-1.95rem',
                 top: '0.2rem',
-                width: '14px',
-                height: '14px',
+                width: '12px',
+                height: '12px',
                 borderRadius: '50%',
-                background: m.status === 'Completed' ? 'var(--accent-emerald)' : m.status === 'InProgress' ? 'var(--accent-amber)' : 'var(--bg-surface)',
-                border: `3px solid ${m.status === 'Completed' ? 'var(--accent-emerald)' : 'var(--accent-blue)'}`,
-                boxShadow: m.status === 'Completed' ? '0 0 10px var(--accent-emerald)' : 'none'
+                background: m.status === 'Completed' ? 'var(--status-success)' : 'var(--bg-surface)',
+                border: `2px solid ${m.status === 'Completed' ? 'var(--status-success)' : 'var(--accent-blue)'}`
               }} />
 
-              <div className="panel" style={{ padding: '1rem 1.25rem', marginBottom: 0, background: 'rgba(30, 41, 59, 0.4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+              <div className="panel" style={{ padding: 'var(--space-3) var(--space-4)', marginBottom: 0, background: 'var(--bg-card)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                  <span style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--font-sm)', color: 'var(--text-main)' }}>
                     {m.milestoneType}
                   </span>
-                  <span className={`badge ${m.status === 'Completed' ? 'badge-emerald' : 'badge-cyan'}`}>
+                  <Badge variant={m.status === 'Completed' ? 'emerald' : 'cyan'}>
                     {m.status}
-                  </span>
+                  </Badge>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)', fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
                   {m.locationName && <span>📍 Lokasyon: <strong style={{ color: 'var(--text-main)' }}>{m.locationName}</strong></span>}
-                  <span>🕒 Zaman Dilimi: <code>{m.timezoneId}</code></span>
+                  <span>🕒 Zaman Dilimi: <code className="font-mono">{m.timezoneId}</code></span>
                   {m.plannedAtUtc && <span>📅 Planlanan: {new Date(m.plannedAtUtc).toLocaleString('tr-TR')}</span>}
-                  {m.actualAtUtc && <span>✅ Gerçekleşen: <strong style={{ color: 'var(--accent-emerald)' }}>{new Date(m.actualAtUtc).toLocaleString('tr-TR')}</strong></span>}
+                  {m.actualAtUtc && <span>✅ Gerçekleşen: <strong style={{ color: 'var(--status-success)' }}>{new Date(m.actualAtUtc).toLocaleString('tr-TR')}</strong></span>}
                 </div>
               </div>
             </div>

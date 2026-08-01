@@ -53,8 +53,8 @@ export const DocumentChecklistWidget: React.FC<Props> = ({ scopeType, scopeId })
             style={{
               padding: '0.65rem 0.85rem',
               borderRadius: '6px',
-              background: 'rgba(30, 41, 59, 0.4)',
-              border: '1px solid var(--border-color)',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
               fontSize: '0.82rem',
               display: 'flex',
               flexDirection: 'column',

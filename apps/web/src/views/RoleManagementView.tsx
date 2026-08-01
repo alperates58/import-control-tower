@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
+import { LoadingSkeleton } from '../components/ui/FeedbackState';
 import { IconRoles } from '../components/Icons';
 
 interface Role {
@@ -47,112 +53,110 @@ export const RoleManagementView: React.FC = () => {
 
   return (
     <div>
-      <div className="panel">
-        <div className="panel-header">
-          <div className="panel-title">
+      <PageHeader
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <IconRoles />
             <span>Rol ve İzin Yönetimi (İzin Kataloğu)</span>
           </div>
-          <div className="badge badge-purple" style={{ fontSize: '0.8rem' }}>
+        }
+        actions={
+          <Badge variant="purple">
             Toplam {allPermissions.length} İzin Aktif
-          </div>
-        </div>
+          </Badge>
+        }
+      />
 
-        {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>Rol matrisi yükleniyor...</div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-            {roles.map((role) => (
-              <div key={role.id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <div className="card-header" style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#f8fafc' }}>
-                      {role.name}
-                    </div>
-                    {role.isSystemRole && (
-                      <span className="badge badge-cyan">Sistem Rolü</span>
-                    )}
-                  </div>
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                    {role.description}
-                  </p>
-                </div>
-
-                <div style={{ borderTop: '1px solid rgba(51, 65, 85, 0.4)', paddingTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    Atanmış İzin: <strong style={{ color: '#38bdf8' }}>{role.permissions.length}</strong> / {allPermissions.length}
-                  </div>
-                  <button
-                    className="btn-secondary btn-sm"
-                    onClick={() => setSelectedRole(role)}
-                  >
-                    İzin Detayları
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Role Permission Detail Modal */}
-      {selectedRole && (
-        <div className="modal-overlay">
-          <div className="modal-container" style={{ maxWidth: '680px' }}>
-            <div className="modal-header">
+      {loading ? (
+        <LoadingSkeleton rows={5} height="120px" />
+      ) : (
+        <div className="card-grid">
+          {roles.map((role) => (
+            <Card key={role.id} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
-                  {selectedRole.name} - İzin Detay Kataloğu
-                </h3>
-                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-                  {selectedRole.description}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                  <div style={{ fontWeight: 'var(--weight-bold)', fontSize: 'var(--font-md)', color: 'var(--text-main)' }}>
+                    {role.name}
+                  </div>
+                  {role.isSystemRole && (
+                    <Badge variant="cyan">Sistem Rolü</Badge>
+                  )}
                 </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: 'var(--font-sm)', marginBottom: 'var(--space-4)', lineHeight: 'var(--lh-normal)' }}>
+                  {role.description}
+                </p>
               </div>
-              <button className="btn-secondary btn-sm" onClick={() => setSelectedRole(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {Array.from(new Set(allPermissions.map(p => p.groupName))).map(group => {
-                  const groupPerms = allPermissions.filter(p => p.groupName === group);
-                  return (
-                    <div key={group} style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
-                        {group} Modülü
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.5rem' }}>
-                        {groupPerms.map(perm => {
-                          const hasIt = selectedRole.permissions.includes(perm.code);
-                          return (
-                            <div key={perm.code} style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '0.4rem 0.6rem',
-                              borderRadius: '6px',
-                              background: hasIt ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                              border: hasIt ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(255, 255, 255, 0.04)'
-                            }}>
-                              <span style={{ fontSize: '0.78rem', fontFamily: 'monospace', color: hasIt ? '#f8fafc' : '#64748b' }}>{perm.code}</span>
-                              <span className={hasIt ? 'badge badge-emerald' : 'badge badge-rose'} style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>
-                                {hasIt ? 'Var' : 'Yok'}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-dim)' }}>
+                  Atanmış İzin: <strong style={{ color: 'var(--accent-blue)' }}>{role.permissions.length}</strong> / {allPermissions.length}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSelectedRole(role)}
+                >
+                  İzin Detayları
+                </Button>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={() => setSelectedRole(null)}>
-                Kapat
-              </button>
-            </div>
-          </div>
+            </Card>
+          ))}
         </div>
       )}
+
+      {/* Role Permission Detail Modal */}
+      <Modal
+        isOpen={!!selectedRole}
+        onClose={() => setSelectedRole(null)}
+        title={selectedRole ? `${selectedRole.name} - İzin Detay Kataloğu` : ''}
+        maxWidth="680px"
+        footer={
+          <Button variant="primary" onClick={() => setSelectedRole(null)}>
+            Kapat
+          </Button>
+        }
+      >
+        {selectedRole && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
+              {selectedRole.description}
+            </div>
+            {Array.from(new Set(allPermissions.map(p => p.groupName))).map(group => {
+              const groupPerms = allPermissions.filter(p => p.groupName === group);
+              return (
+                <div key={group} className="panel" style={{ padding: 'var(--space-3)', margin: 0 }}>
+                  <div style={{ fontSize: 'var(--font-xs)', fontWeight: 'var(--weight-bold)', color: 'var(--accent-blue)', textTransform: 'uppercase', marginBottom: 'var(--space-2)' }}>
+                    {group} Modülü
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.4rem' }}>
+                    {groupPerms.map(perm => {
+                      const hasIt = selectedRole.permissions.includes(perm.code);
+                      return (
+                        <div key={perm.code} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.35rem 0.5rem',
+                          borderRadius: 'var(--radius-sm)',
+                          background: hasIt ? 'var(--status-success-bg)' : 'rgba(255, 255, 255, 0.02)',
+                          border: hasIt ? '1px solid var(--status-success-border)' : '1px solid var(--border-subtle)'
+                        }}>
+                          <span className="font-mono" style={{ fontSize: 'var(--font-xs)', color: hasIt ? 'var(--text-main)' : 'var(--text-dim)' }}>
+                            {perm.code}
+                          </span>
+                          <Badge variant={hasIt ? 'emerald' : 'rose'} style={{ fontSize: '0.65rem' }}>
+                            {hasIt ? 'Var' : 'Yok'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

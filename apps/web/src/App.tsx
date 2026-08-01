@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { setImportCaseServiceFetch } from './services/importCaseService';
 import { setDocumentServiceFetch } from './services/documentService';
@@ -18,6 +19,11 @@ import { ImportCaseDetailView } from './views/ImportCaseDetailView';
 import { DocumentListView } from './views/DocumentListView';
 import { ForceChangePasswordView } from './views/ForceChangePasswordView';
 
+import { KPICard, Section } from './components/ui/Card';
+import { EmptyState } from './components/ui/FeedbackState';
+import { PageHeader } from './components/ui/PageHeader';
+import { ThemeToggle } from './components/ui/ThemeToggle';
+
 import {
   IconDashboard,
   IconOrders,
@@ -29,7 +35,6 @@ import {
   IconUsers,
   IconRoles,
   IconAudit,
-  IconFinancial,
   IconLogout,
   IconFileSpreadsheet
 } from './components/Icons';
@@ -40,6 +45,8 @@ const MainApp: React.FC = () => {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -50,9 +57,9 @@ const MainApp: React.FC = () => {
 
   if (isBootstrapping) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#090d16', color: '#38bdf8', gap: '1rem', fontFamily: 'system-ui' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid #1e293b', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-        <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>Import Control Tower Yükleniyor...</div>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-base)', color: 'var(--accent-blue)', gap: '1rem' }}>
+        <div className="pulse-dot" style={{ width: '24px', height: '24px' }} />
+        <div style={{ fontWeight: 600, fontSize: 'var(--font-sm)' }}>Import Control Tower Yükleniyor...</div>
       </div>
     );
   }
@@ -85,31 +92,24 @@ const MainApp: React.FC = () => {
       items: [
         { id: 'users', label: 'Kullanıcı Yönetimi', perm: 'users.view', icon: <IconUsers /> },
         { id: 'roles', label: 'Rol Yönetimi', perm: 'roles.view', icon: <IconRoles /> },
-        { id: 'audit', label: 'Audit Logları', perm: 'audit.view', icon: <IconAudit /> },
-        { id: 'financials', label: 'Finansal Analiz', perm: 'financial.view', icon: <IconFinancial /> }
+        { id: 'audit', label: 'Audit Logları', perm: 'audit.view', icon: <IconAudit /> }
       ]
     }
   ];
 
-  const getActiveTabTitle = () => {
-    for (const sec of menuSections) {
-      const found = sec.items.find(i => i.id === activeTab);
-      if (found) return found.label;
-    }
-    if (activeTab === 'profile') return 'Kullanıcı Profili';
-    if (activeTab === 'po-preview') return 'İçe Aktarma Ön İzlemesi';
-    if (activeTab === 'po-detail') return 'Sipariş Detayı';
-    if (activeTab === 'case-detail') return 'İthalat Dosya Detayı';
-    return 'Genel Bakış';
-  };
-
   return (
     <div className="app-layout">
+      {/* Mobile Drawer Overlay */}
+      <div
+        className={`sidebar-overlay ${mobileOpen ? 'mobile-open' : ''}`}
+        onClick={() => setMobileOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside className="app-sidebar">
+      <aside className={`app-sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="brand-logo-box">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="12 2 2 7 12 12 22 7 12 2" />
               <polyline points="2 17 12 22 22 17" />
               <polyline points="2 12 12 17 22 12" />
@@ -117,7 +117,7 @@ const MainApp: React.FC = () => {
           </div>
           <div className="brand-title-group">
             <h1>Control Tower</h1>
-            <span>Import Tower v0.3</span>
+            <span>Import Tower v0.4</span>
           </div>
         </div>
 
@@ -128,11 +128,14 @@ const MainApp: React.FC = () => {
             return (
               <div key={idx}>
                 <div className="nav-section-title">{sec.title}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   {visibleItems.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => setActiveTab(item.id)}
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setMobileOpen(false);
+                      }}
                       className={`nav-item-btn ${activeTab === item.id ? 'active' : ''}`}
                     >
                       <span className="nav-icon">{item.icon}</span>
@@ -149,7 +152,10 @@ const MainApp: React.FC = () => {
         <div className="sidebar-user-footer">
           <div
             className="user-profile-card"
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              setActiveTab('profile');
+              setMobileOpen(false);
+            }}
             title="Profil ve Güvenlik Ayarları"
           >
             <div className="avatar-circle">
@@ -171,14 +177,30 @@ const MainApp: React.FC = () => {
       {/* Main Content */}
       <div className="app-main">
         <header className="app-topbar">
-          <div className="topbar-title-group">
-            <h2>{getActiveTabTitle()}</h2>
+          <div className="topbar-left">
+            <button
+              className="mobile-menu-btn"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Mobil Menü"
+            >
+              ☰
+            </button>
+            <div className="topbar-search-box">
+              <span>🔍</span>
+              <input
+                type="text"
+                placeholder="Dosya, PO veya evrak ara..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="topbar-right-controls">
-            <div className="status-badge-pill">
-              <span className="pulse-dot"></span>
-              <span>Canlı Bağlantı — PostgreSQL 18</span>
+          <div className="topbar-right-controls" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <ThemeToggle />
+            <div className="connection-status-pill">
+              <span className="pulse-dot" />
+              <span>Sistem Çevrimiçi</span>
             </div>
           </div>
         </header>
@@ -186,56 +208,80 @@ const MainApp: React.FC = () => {
         <main className="content-viewport">
           {activeTab === 'dashboard' && (
             <ProtectedRoute requiredPermission="dashboard.view">
-              <div className="kpi-grid">
-                <div className="kpi-card">
-                  <div className="kpi-card-header">
-                    <span className="kpi-title">Aktif Oturum</span>
-                    <div className="kpi-icon-box"><IconUsers /></div>
-                  </div>
-                  <div className="kpi-value">{user?.email}</div>
-                  <div className="kpi-subtext">Güvenli JWT / Refresh Cookie Aktif</div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-card-header">
-                    <span className="kpi-title">Erişim Rolü</span>
-                    <div className="kpi-icon-box"><IconRoles /></div>
-                  </div>
-                  <div className="kpi-value" style={{ color: '#38bdf8' }}>{user?.roles[0]}</div>
-                  <div className="kpi-subtext">Tam Yetkili Sistem Yöneticisi</div>
-                </div>
-
-                <div className="kpi-card">
-                  <div className="kpi-card-header">
-                    <span className="kpi-title">Toplam İzin</span>
-                    <div className="kpi-icon-box"><IconAudit /></div>
-                  </div>
-                  <div className="kpi-value" style={{ color: '#10b981' }}>
-                    {catalogPermissionCount !== null
+              <PageHeader
+                title="Genel Bakış"
+                subtitle="Import Control Tower operasyonel durum ve erişim yetkileri"
+              />
+              <div className="kpi-grid" style={{ marginBottom: 'var(--space-6)' }}>
+                <KPICard
+                  title="Aktif Oturum"
+                  value={user?.email || '-'}
+                  subtext="Güvenli Oturum Aktif"
+                  icon={<IconUsers />}
+                />
+                <KPICard
+                  title="Erişim Rolü"
+                  value={user?.roles[0] || '-'}
+                  valueColor="var(--accent-blue)"
+                  subtext="Sistem Yetkisi"
+                  icon={<IconRoles />}
+                />
+                <KPICard
+                  title="Aktif İzinler"
+                  value={
+                    catalogPermissionCount !== null
                       ? `${user?.permissions.length} / ${catalogPermissionCount}`
-                      : `${user?.permissions.length} İzin`}
-                  </div>
-                  <div className="kpi-subtext">
-                    {user?.roles.includes('SystemAdmin')
-                      ? 'Katalog İzinlerinin Tamamı Aktif'
-                      : 'Aktif İzin Sayısı'}
-                  </div>
-                </div>
+                      : `${user?.permissions.length}`
+                  }
+                  valueColor="var(--status-success)"
+                  subtext={
+                    user?.roles.includes('SystemAdmin')
+                      ? 'Sistem Yöneticisi Yetkisi Tam'
+                      : 'Atanmış İzinler'
+                  }
+                  icon={<IconAudit />}
+                />
               </div>
 
-              <div className="panel">
-                <div className="panel-header">
-                  <div className="panel-title">
-                    <IconCases />
-                    <span>Faz 03 — İthalat Dosyaları ve Sevkiyat Takibi Aktif</span>
+              <Section title="Operasyonel Modüller">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-4)' }}>
+                  <div className="card" style={{ padding: 'var(--space-5)', cursor: 'pointer' }} onClick={() => setActiveTab('import-cases')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
+                      <div style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)', background: 'var(--primary-light)', color: 'var(--accent-blue)' }}>
+                        <IconCases />
+                      </div>
+                      <h4 style={{ margin: 0, fontSize: 'var(--font-base)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-main)' }}>İthalat Dosyaları</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--text-muted)' }}>
+                      Aktif ithalat dosyalarını, sipariş kalemlerini ve konteyner eşleşmelerini takip edin.
+                    </p>
+                  </div>
+
+                  <div className="card" style={{ padding: 'var(--space-5)', cursor: 'pointer' }} onClick={() => setActiveTab('purchase-orders')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
+                      <div style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-emerald)' }}>
+                        <IconOrders />
+                      </div>
+                      <h4 style={{ margin: 0, fontSize: 'var(--font-base)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-main)' }}>Satın Alma Siparişleri</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--text-muted)' }}>
+                      İçe aktarılan sipariş listelerini inceleyin ve dosyalara bağlayın.
+                    </p>
+                  </div>
+
+                  <div className="card" style={{ padding: 'var(--space-5)', cursor: 'pointer' }} onClick={() => setActiveTab('documents')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
+                      <div style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-md)', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-amber)' }}>
+                        <IconDocuments />
+                      </div>
+                      <h4 style={{ margin: 0, fontSize: 'var(--font-base)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-main)' }}>İthalat Evrakları</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--text-muted)' }}>
+                      Gümrük ve nakliye evraklarını versiyonlarıyla birlikte yönetin.
+                    </p>
                   </div>
                 </div>
-                <div style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>
-                  <p style={{ marginBottom: '1rem' }}>
-                    İthalat dosyası oluşturma, sipariş kalemi bağlama/tahsis etme, sevkiyat takibi ve ISO 6346 konteyner yönetimi için sol menüdeki <strong>İthalat Dosyaları</strong> sekmesini kullanabilirsiniz.
-                  </p>
-                </div>
-              </div>
+              </Section>
             </ProtectedRoute>
           )}
 
@@ -340,17 +386,16 @@ const MainApp: React.FC = () => {
           )}
 
           {!['dashboard', 'import-cases', 'shipments', 'containers', 'case-detail', 'documents', 'po-import', 'po-preview', 'po-history', 'purchase-orders', 'po-detail', 'users', 'roles', 'audit', 'profile'].includes(activeTab) && (
-            <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📦</div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                {menuSections.flatMap(s => s.items).find(m => m.id === activeTab)?.label}
-              </h2>
-              <p style={{ color: '#94a3b8', maxWidth: '500px', margin: '0 auto 1.5rem' }}>
-                Bu modül sonraki fazlarda entegre edilecektir.
-              </p>
-              <button className="btn-secondary" onClick={() => setActiveTab('dashboard')}>
-                Genel Bakışa Dön
-              </button>
+            <div className="panel">
+              <EmptyState
+                title="Modül Hazırlanıyor"
+                description="Bu modül sonraki fazlarda entegre edilecektir."
+                action={
+                  <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('dashboard')}>
+                    Genel Bakışa Dön
+                  </button>
+                }
+              />
             </div>
           )}
         </main>
@@ -361,9 +406,11 @@ const MainApp: React.FC = () => {
 
 export function App() {
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

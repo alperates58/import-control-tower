@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { PageHeader } from '../components/ui/PageHeader';
+import { DataTable, Column } from '../components/ui/DataTable';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import { IconAudit } from '../components/Icons';
 
 interface AuditLog {
@@ -36,105 +41,121 @@ export const AuditLogsView: React.FC = () => {
     fetchLogs();
   }, []);
 
+  const columns: Column<AuditLog>[] = [
+    {
+      key: 'timestampUtc',
+      header: 'Tarih & Zaman (TR)',
+      render: (log) => (
+        <span style={{ whiteSpace: 'nowrap', fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }}>
+          {new Date(log.timestampUtc).toLocaleString('tr-TR')}
+        </span>
+      )
+    },
+    {
+      key: 'actorUsername',
+      header: 'Aktör',
+      render: (log) => (
+        <div>
+          <div style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--text-main)' }}>
+            {log.actorUsername || log.actorType}
+          </div>
+          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-dim)' }}>{log.actorType}</div>
+        </div>
+      )
+    },
+    {
+      key: 'action',
+      header: 'Aksiyon',
+      render: (log) => (
+        <Badge variant="purple" style={{ fontFamily: 'var(--font-mono)' }}>
+          {log.action}
+        </Badge>
+      )
+    },
+    {
+      key: 'entityType',
+      header: 'Hedef Varlık',
+      render: (log) => (
+        <div>
+          <div>{log.entityType}</div>
+          <div className="font-mono" style={{ fontSize: 'var(--font-xs)', color: 'var(--text-dim)' }}>
+            {log.entityId}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'ipAddress',
+      header: 'IP Adresi',
+      render: (log) => (
+        <span className="font-mono" style={{ fontSize: 'var(--font-xs)', color: 'var(--accent-blue)' }}>
+          {log.ipAddress}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      header: 'Detay',
+      align: 'right',
+      render: (log) => (
+        <Button variant="secondary" size="sm" onClick={() => setSelectedLog(log)}>
+          JSON Oku
+        </Button>
+      )
+    }
+  ];
+
   return (
     <div>
-      <div className="panel">
-        <div className="panel-header">
-          <div className="panel-title">
+      <PageHeader
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <IconAudit />
             <span>Güvenlik & Uyum Kayıtları (Audit Logs)</span>
           </div>
-          <div className="badge badge-cyan">
+        }
+        actions={
+          <Badge variant="cyan">
             {logs.length} Kayıt Listelendi
-          </div>
-        </div>
+          </Badge>
+        }
+      />
 
-        {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>Audit kayıtları yükleniyor...</div>
-        ) : (
-          <div className="data-table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Tarih & Zaman (TR)</th>
-                  <th>Aktör</th>
-                  <th>Aksiyon</th>
-                  <th>Hedef Varlık</th>
-                  <th>IP Adresi</th>
-                  <th style={{ textAlign: 'right' }}>Detay</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.8rem', color: '#94a3b8' }}>
-                      {new Date(log.timestampUtc).toLocaleString('tr-TR')}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{log.actorUsername || log.actorType}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{log.actorType}</div>
-                    </td>
-                    <td>
-                      <span className="badge badge-purple" style={{ fontFamily: 'monospace' }}>
-                        {log.action}
-                      </span>
-                    </td>
-                    <td>
-                      <div>{log.entityType}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'monospace' }}>{log.entityId}</div>
-                    </td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#38bdf8' }}>
-                      {log.ipAddress}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        className="btn-secondary btn-sm"
-                        onClick={() => setSelectedLog(log)}
-                      >
-                        JSON Oku
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={logs}
+        keyExtractor={(log) => log.id}
+        isLoading={loading}
+        emptyMessage="Henüz audit kaydı bulunmuyor."
+      />
 
       {/* JSON Viewer Modal */}
-      {selectedLog && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
-                Audit Log Detayı ({selectedLog.action})
-              </h3>
-              <button className="btn-secondary btn-sm" onClick={() => setSelectedLog(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <pre style={{
-                background: '#090d16',
-                padding: '1.25rem',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                color: '#38bdf8',
-                fontFamily: 'monospace',
-                fontSize: '0.82rem',
-                overflowX: 'auto',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {JSON.stringify(JSON.parse(selectedLog.metadataJson || '{}'), null, 2)}
-              </pre>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-primary" onClick={() => setSelectedLog(null)}>
-                Kapat
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+        title={selectedLog ? `Audit Log Detayı (${selectedLog.action})` : ''}
+        footer={
+          <Button variant="primary" onClick={() => setSelectedLog(null)}>
+            Kapat
+          </Button>
+        }
+      >
+        {selectedLog && (
+          <pre style={{
+            background: 'var(--bg-base)',
+            padding: 'var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--accent-blue)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-xs)',
+            overflowX: 'auto',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {JSON.stringify(JSON.parse(selectedLog.metadataJson || '{}'), null, 2)}
+          </pre>
+        )}
+      </Modal>
     </div>
   );
 };

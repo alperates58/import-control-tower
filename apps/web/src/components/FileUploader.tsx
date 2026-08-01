@@ -58,18 +58,18 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelected, isLo
         onDrop={handleDrop}
         onClick={() => !isLoading && fileInputRef.current?.click()}
         style={{
-          border: `2px dashed ${isDragOver ? '#3b82f6' : 'rgba(255, 255, 255, 0.15)'}`,
-          borderRadius: '16px',
-          padding: '3rem 2rem',
+          border: `2px dashed ${isDragOver ? 'var(--accent-blue)' : 'var(--border-strong)'}`,
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-8) var(--space-4)',
           textAlign: 'center',
-          background: isDragOver ? 'rgba(59, 130, 246, 0.08)' : 'rgba(15, 23, 42, 0.4)',
+          background: isDragOver ? 'var(--primary-light)' : 'var(--bg-input)',
           cursor: isLoading ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s ease',
+          transition: 'all var(--transition-fast)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '1rem'
+          gap: 'var(--space-3)'
         }}
       >
         <input
@@ -83,33 +83,33 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelected, isLo
 
         <div
           style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
-            background: 'rgba(59, 130, 246, 0.12)',
-            color: '#3b82f6',
+            width: '48px',
+            height: '48px',
+            borderRadius: 'var(--radius-lg)',
+            background: 'var(--primary-light)',
+            color: 'var(--accent-blue)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
           {isLoading ? (
-            <div style={{ width: '24px', height: '24px', border: '3px solid #3b82f6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <div className="pulse-dot" style={{ width: '12px', height: '12px' }} />
           ) : (
             <IconUpload />
           )}
         </div>
 
         <div>
-          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc' }}>
+          <h3 style={{ margin: '0 0 var(--space-1) 0', fontSize: 'var(--font-md)', fontWeight: 'var(--weight-bold)', color: 'var(--text-main)' }}>
             {isLoading ? 'Dosya Yükleniyor ve Okunuyor...' : 'Excel Dosyasını Sürükleyip Bırakın'}
           </h3>
-          <p style={{ margin: 0, fontSize: '0.875rem', color: '#94a3b8' }}>
+          <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--text-muted)' }}>
             veya cihazınızdan bir <strong>.xlsx</strong> dosyası seçmek için tıklayın
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-2)', fontSize: 'var(--font-xs)', color: 'var(--text-dim)' }}>
           <span>Maksimum 10 MB</span>
           <span>•</span>
           <span>Maksimum 20.000 Satır</span>
@@ -121,16 +121,16 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileSelected, isLo
       {errorMessage && (
         <div
           style={{
-            marginTop: '1rem',
-            padding: '0.85rem 1rem',
-            borderRadius: '10px',
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#f87171',
+            marginTop: 'var(--space-4)',
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--status-danger-bg)',
+            border: '1px solid var(--status-danger-border)',
+            color: 'var(--accent-rose)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75rem',
-            fontSize: '0.875rem'
+            gap: 'var(--space-3)',
+            fontSize: 'var(--font-sm)'
           }}
         >
           <IconAlert />

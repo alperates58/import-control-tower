@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { IconArrowLeft } from '../components/Icons';
 import { useAuth } from '../context/AuthContext';
+import { PageHeader } from '../components/ui/PageHeader';
+import { IconButton, Button } from '../components/ui/Button';
+import { DataTable, Column } from '../components/ui/DataTable';
+import { StatusBadge } from '../components/ui/Badge';
+import { Section } from '../components/ui/Card';
+import { EmptyState, LoadingSkeleton } from '../components/ui/FeedbackState';
 
 interface PurchaseOrderDetailViewProps {
   orderId: string;
@@ -32,83 +38,96 @@ export const PurchaseOrderDetailView: React.FC<PurchaseOrderDetailViewProps> = (
   }, [orderId]);
 
   if (isLoading) {
-    return <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>Sipariş Detayı Yükleniyor...</div>;
+    return <LoadingSkeleton rows={4} height="50px" />;
   }
 
   if (!po) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#f87171' }}>
-        Sipariş detayları yüklenemedi.
-        <button onClick={onBack} style={{ marginTop: '1rem', display: 'block', margin: '1rem auto', padding: '0.5rem 1rem', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.1)', border: 'none', color: '#fff', cursor: 'pointer' }}>
-          Geri Dön
-        </button>
-      </div>
+      <EmptyState
+        title="Sipariş Detayı Yüklenemedi"
+        description="Sipariş detay verilerine erişilemedi veya sipariş silinmiş olabilir."
+        action={
+          <Button variant="secondary" onClick={onBack}>
+            Geri Dön
+          </Button>
+        }
+      />
     );
   }
 
+  const lineColumns: Column<any>[] = [
+    {
+      key: 'lineNumber',
+      header: 'Kalem #',
+      render: (l) => l.lineNumber
+    },
+    {
+      key: 'stockCode',
+      header: 'Stok Kodu',
+      render: (l) => (
+        <span className="font-mono" style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--text-main)' }}>
+          {l.stockCode}
+        </span>
+      )
+    },
+    {
+      key: 'stockName',
+      header: 'Stok İsmi',
+      render: (l) => l.stockName
+    },
+    {
+      key: 'orderedQuantity',
+      header: 'Sipariş Miktarı',
+      align: 'right',
+      render: (l) => (
+        <span style={{ color: 'var(--status-success)', fontWeight: 'var(--weight-semibold)' }}>
+          {l.orderedQuantity}
+        </span>
+      )
+    },
+    {
+      key: 'remainingQuantity',
+      header: 'Kalan Miktar',
+      align: 'right',
+      render: (l) => (
+        <span style={{ color: 'var(--status-warning)', fontWeight: 'var(--weight-semibold)' }}>
+          {l.remainingQuantity}
+        </span>
+      )
+    },
+    {
+      key: 'sasDate',
+      header: 'SAS Tarihi',
+      render: (l) => (l.sasDate ? new Date(l.sasDate).toLocaleDateString('tr-TR') : '-')
+    }
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '10px',
-            color: '#f8fafc',
-            padding: '0.5rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          <IconArrowLeft />
-        </button>
-
-        <div>
+    <div>
+      <PageHeader
+        title={
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc' }}>
-              Sipariş No: {po.orderNumber}
-            </h2>
-            <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', fontWeight: 600 }}>
-              {po.status}
-            </span>
+            <IconButton icon={<IconArrowLeft />} onClick={onBack} aria-label="Geri Dön" />
+            <span>Sipariş No: {po.orderNumber}</span>
+            <StatusBadge status={po.status} />
           </div>
-          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#94a3b8' }}>
-            Tedarikçi: <strong>{po.supplierName}</strong> | Sipariş Tarihi: <strong>{new Date(po.orderDate).toLocaleDateString('tr-TR')}</strong>
-          </p>
-        </div>
-      </div>
+        }
+        subtitle={
+          <span>
+            Tedarikçi: <strong>{po.supplierName}</strong> | Sipariş Tarihi:{' '}
+            <strong>{new Date(po.orderDate).toLocaleDateString('tr-TR')}</strong>
+          </span>
+        }
+      />
 
-      <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '1.5rem' }}>
-        <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: 600, color: '#f8fafc' }}>Sipariş Stok Kalemleri ({po.lines?.length || 0})</h4>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ background: 'rgba(30, 41, 59, 0.6)', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#94a3b8' }}>
-              <th style={{ padding: '0.75rem 1rem' }}>Kalem #</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Stok Kodu</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Stok İsmi</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Sipariş Miktarı</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Kalan Miktar</th>
-              <th style={{ padding: '0.75rem 1rem' }}>SAS Tarihi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {po.lines?.map((l: any) => (
-              <tr key={l.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <td style={{ padding: '0.75rem 1rem', color: '#94a3b8' }}>{l.lineNumber}</td>
-                <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#f8fafc', fontFamily: 'monospace' }}>{l.stockCode}</td>
-                <td style={{ padding: '0.75rem 1rem', color: '#e2e8f0' }}>{l.stockName}</td>
-                <td style={{ padding: '0.75rem 1rem', color: '#34d399', fontWeight: 600 }}>{l.orderedQuantity}</td>
-                <td style={{ padding: '0.75rem 1rem', color: '#fbbf24', fontWeight: 600 }}>{l.remainingQuantity}</td>
-                <td style={{ padding: '0.75rem 1rem', color: '#94a3b8' }}>
-                  {l.sasDate ? new Date(l.sasDate).toLocaleDateString('tr-TR') : '-'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Section title={`Sipariş Stok Kalemleri (${po.lines?.length || 0})`}>
+        <DataTable
+          columns={lineColumns}
+          data={po.lines || []}
+          keyExtractor={(l) => l.id}
+          emptyMessage="Bu siparişte henüz kalem bulunmuyor."
+        />
+      </Section>
     </div>
   );
 };

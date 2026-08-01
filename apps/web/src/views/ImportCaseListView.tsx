@@ -4,6 +4,12 @@ import { importCaseService } from '../services/importCaseService';
 import { ImportCaseSummaryCards } from '../components/import-cases/ImportCaseSummaryCards';
 import { ImportCaseCreateModal } from './ImportCaseCreateModal';
 import { useAuth } from '../context/AuthContext';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Button } from '../components/ui/Button';
+import { Input, Select, Checkbox, FormField } from '../components/ui/Input';
+import { DataTable, Column, Pagination } from '../components/ui/DataTable';
+import { Badge } from '../components/ui/Badge';
+import { ErrorState } from '../components/ui/FeedbackState';
 
 interface Props {
   onSelectCase: (caseId: string) => void;
@@ -63,261 +69,206 @@ export const ImportCaseListView: React.FC<Props> = ({ onSelectCase }) => {
 
   const getStatusBadge = (s: string) => {
     switch (s) {
-      case 'Draft': return <span className="badge badge-cyan">Taslak</span>;
-      case 'Active': return <span className="badge badge-emerald">Aktif</span>;
-      case 'Completed': return <span className="badge badge-purple">Tamamlandı</span>;
-      case 'Closed': return <span className="badge badge-emerald">Kapatıldı</span>;
-      case 'Cancelled': return <span className="badge badge-rose">İptal Edildi</span>;
-      default: return <span className="badge">{s}</span>;
+      case 'Draft': return <Badge variant="cyan">Taslak</Badge>;
+      case 'Active': return <Badge variant="emerald">Aktif</Badge>;
+      case 'Completed': return <Badge variant="purple">Tamamlandı</Badge>;
+      case 'Closed': return <Badge variant="emerald">Kapatıldı</Badge>;
+      case 'Cancelled': return <Badge variant="rose">İptal Edildi</Badge>;
+      default: return <Badge variant="neutral">{s}</Badge>;
     }
   };
 
   const getProductionStatusBadge = (ps: string) => {
     switch (ps) {
-      case 'NotStarted': return <span className="badge" style={{ background: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8' }}>Başlamadı</span>;
-      case 'InProduction': return <span className="badge badge-amber">Üretimde</span>;
-      case 'Completed': return <span className="badge badge-emerald">Üretim Bitti</span>;
-      case 'Delayed': return <span className="badge badge-rose">Üretim Gecikti</span>;
-      default: return <span className="badge">{ps}</span>;
+      case 'NotStarted': return <Badge variant="neutral">Başlamadı</Badge>;
+      case 'InProduction': return <Badge variant="amber">Üretimde</Badge>;
+      case 'Completed': return <Badge variant="emerald">Üretim Bitti</Badge>;
+      case 'Delayed': return <Badge variant="rose">Üretim Gecikti</Badge>;
+      default: return <Badge variant="neutral">{ps}</Badge>;
     }
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Header Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-            İthalat Dosyaları ve Sevkiyat Takibi
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-            Faz 03 — İthalat dosyaları, sipariş kalemi tahsisleri ve sevkiyat yönetimi
-          </p>
-        </div>
-        <button
-          onClick={() => setCreateModalOpen(true)}
-          className="btn-primary"
+  const columns: Column<ImportCaseSummary>[] = [
+    {
+      key: 'caseNumber',
+      header: 'Dosya No',
+      render: (c) => (
+        <span className="font-mono" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--accent-blue)' }}>
+          {c.caseNumber}
+        </span>
+      )
+    },
+    {
+      key: 'title',
+      header: 'Başlık',
+      render: (c) => <span style={{ fontWeight: 'var(--weight-semibold)' }}>{c.title}</span>
+    },
+    {
+      key: 'supplierName',
+      header: 'Tedarikçi',
+      render: (c) => c.supplierName
+    },
+    {
+      key: 'defaultTransportMode',
+      header: 'Mod',
+      render: (c) => <Badge variant="neutral">{c.defaultTransportMode || '-'}</Badge>
+    },
+    {
+      key: 'incoterm',
+      header: 'Incoterm',
+      render: (c) => <span className="font-mono" style={{ fontSize: 'var(--font-xs)' }}>{c.incoterm || '-'}</span>
+    },
+    {
+      key: 'status',
+      header: 'Durum',
+      render: (c) => getStatusBadge(c.status)
+    },
+    {
+      key: 'productionStatus',
+      header: 'Üretim Durumu',
+      render: (c) => getProductionStatusBadge(c.productionStatus)
+    },
+    {
+      key: 'shipmentCount',
+      header: 'Sevkiyat Adedi',
+      align: 'center',
+      render: (c) => <strong>{c.shipmentCount}</strong>
+    },
+    {
+      key: 'actions',
+      header: 'İşlemler',
+      align: 'right',
+      render: (c) => (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => { e.stopPropagation(); onSelectCase(c.id); }}
         >
-          <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>+</span>
-          <span>Yeni İthalat Dosyası</span>
-        </button>
-      </div>
+          İncele
+        </Button>
+      )
+    }
+  ];
 
-      {/* KPI Cards */}
+  return (
+    <div>
+      <PageHeader
+        title="İthalat Dosyaları ve Sevkiyat Takibi"
+        subtitle="İthalat dosyaları, sipariş kalemi tahsisleri ve sevkiyat yönetimi"
+        actions={
+          <Button variant="primary" onClick={() => setCreateModalOpen(true)}>
+            + Yeni İthalat Dosyası
+          </Button>
+        }
+      />
+
       <ImportCaseSummaryCards summary={summary} />
 
-      {/* Filter Toolbar Panel */}
-      <div className="panel" style={{ marginBottom: 0 }}>
-        <div className="panel-header" style={{ marginBottom: '1rem', paddingBottom: '0.75rem' }}>
-          <div className="panel-title" style={{ fontSize: '0.95rem' }}>
-            <span>🔍 Arama ve Filtreleme Toolbar</span>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
+      <div className="panel" style={{ marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', alignItems: 'flex-end' }}>
           <div style={{ gridColumn: 'span 2' }}>
-            <label className="form-label">Arama</label>
-            <input
-              type="text"
-              placeholder="Dosya No, Başlık veya Tedarikçi Ara..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="form-input"
-              style={{ width: '100%' }}
-            />
+            <FormField label="Arama">
+              <Input
+                type="text"
+                placeholder="Dosya No, Başlık veya Tedarikçi Ara..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              />
+            </FormField>
           </div>
 
-          <div>
-            <label className="form-label">Dosya Durumu</label>
-            <select
+          <FormField label="Dosya Durumu">
+            <Select
               value={status}
               onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-              className="form-input"
-              style={{ width: '100%' }}
-            >
-              <option value="">Tüm Dosya Durumları</option>
-              <option value="Draft">Taslak (Draft)</option>
-              <option value="Active">Aktif (Active)</option>
-              <option value="Completed">Tamamlandı (Completed)</option>
-              <option value="Closed">Kapatıldı (Closed)</option>
-              <option value="Cancelled">İptal Edildi (Cancelled)</option>
-            </select>
-          </div>
+              options={[
+                { value: '', label: 'Tüm Dosya Durumları' },
+                { value: 'Draft', label: 'Taslak (Draft)' },
+                { value: 'Active', label: 'Aktif (Active)' },
+                { value: 'Completed', label: 'Tamamlandı (Completed)' },
+                { value: 'Closed', label: 'Kapatıldı (Closed)' },
+                { value: 'Cancelled', label: 'İptal Edildi (Cancelled)' }
+              ]}
+            />
+          </FormField>
 
-          <div>
-            <label className="form-label">Üretim Durumu</label>
-            <select
+          <FormField label="Üretim Durumu">
+            <Select
               value={productionStatus}
               onChange={(e) => { setProductionStatus(e.target.value); setPage(1); }}
-              className="form-input"
-              style={{ width: '100%' }}
-            >
-              <option value="">Tüm Üretim Durumları</option>
-              <option value="NotStarted">Başlamadı</option>
-              <option value="InProduction">Üretimde</option>
-              <option value="Completed">Üretim Bitti</option>
-              <option value="Delayed">Gecikti</option>
-            </select>
-          </div>
+              options={[
+                { value: '', label: 'Tüm Üretim Durumları' },
+                { value: 'NotStarted', label: 'Başlamadı' },
+                { value: 'InProduction', label: 'Üretimde' },
+                { value: 'Completed', label: 'Üretim Bitti' },
+                { value: 'Delayed', label: 'Gecikti' }
+              ]}
+            />
+          </FormField>
 
-          <div>
-            <label className="form-label">Taşıma Modu</label>
-            <select
+          <FormField label="Taşıma Modu">
+            <Select
               value={defaultTransportMode}
               onChange={(e) => { setDefaultTransportMode(e.target.value); setPage(1); }}
-              className="form-input"
-              style={{ width: '100%' }}
-            >
-              <option value="">Tüm Taşıma Modları</option>
-              <option value="Sea">Deniz (Sea)</option>
-              <option value="Air">Hava (Air)</option>
-              <option value="Road">Kara (Road)</option>
-              <option value="Rail">Demiryolu (Rail)</option>
-              <option value="Courier">Kurye (Courier)</option>
-              <option value="Multimodal">Multimodal</option>
-            </select>
-          </div>
+              options={[
+                { value: '', label: 'Tüm Taşıma Modları' },
+                { value: 'Sea', label: 'Deniz (Sea)' },
+                { value: 'Air', label: 'Hava (Air)' },
+                { value: 'Road', label: 'Kara (Road)' },
+                { value: 'Rail', label: 'Demiryolu (Rail)' },
+                { value: 'Courier', label: 'Kurye (Courier)' },
+                { value: 'Multimodal', label: 'Multimodal' }
+              ]}
+            />
+          </FormField>
 
-          <div>
-            <label className="form-label">Sıralama</label>
-            <select
+          <FormField label="Sıralama">
+            <Select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
-            >
-              <option value="createdat">Son Oluşturulan</option>
-              <option value="createdat_asc">İlk Oluşturulan</option>
-              <option value="casenumber">Dosya No (A-Z)</option>
-              <option value="supplier">Tedarikçi (A-Z)</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            <input
-              type="checkbox"
-              checked={delayedOnly}
-              onChange={(e) => { setDelayedOnly(e.target.checked); setPage(1); }}
-              style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }}
+              options={[
+                { value: 'createdat', label: 'Son Oluşturulan' },
+                { value: 'createdat_asc', label: 'İlk Oluşturulan' },
+                { value: 'casenumber', label: 'Dosya No (A-Z)' },
+                { value: 'supplier', label: 'Tedarikçi (A-Z)' }
+              ]}
             />
-            <span style={{ color: delayedOnly ? 'var(--accent-amber)' : 'inherit', fontWeight: 600 }}>
-              ⚠️ Yalnızca Gecikmedeki Dosyaları Göster
-            </span>
-          </label>
+          </FormField>
+        </div>
+
+        <div style={{ marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)' }}>
+          <Checkbox
+            checked={delayedOnly}
+            onChange={(e) => { setDelayedOnly(e.target.checked); setPage(1); }}
+            label="⚠️ Yalnızca Gecikmedeki Dosyaları Göster"
+          />
         </div>
       </div>
 
-      {/* Main Table / State Container */}
-      <div className="panel">
-        {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--accent-blue)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ width: '32px', height: '32px', border: '3px solid var(--border-color)', borderTopColor: 'var(--accent-blue)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>İthalat dosyaları yükleniyor...</div>
-          </div>
-        ) : errorMsg ? (
-          <div style={{ padding: '1.5rem', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: '10px', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Hata Oluştu</strong>
-              <span style={{ fontSize: '0.85rem' }}>{errorMsg}</span>
-            </div>
-            <button onClick={fetchCases} className="btn-secondary btn-sm">Yeniden Denetle</button>
-          </div>
-        ) : cases.length === 0 ? (
-          <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📁</div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
-              İthalat Dosyası Bulunamadı
-            </h3>
-            <p style={{ fontSize: '0.85rem', maxWidth: '400px', margin: '0 auto 1.25rem' }}>
-              Arama kriterlerinize uygun ithalat dosyası bulunamadı veya henüz dosya oluşturulmadı.
-            </p>
-            <button onClick={() => setCreateModalOpen(true)} className="btn-primary btn-sm">
-              + İlk İthalat Dosyasını Oluştur
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="data-table-wrapper">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Dosya No</th>
-                    <th>Başlık</th>
-                    <th>Tedarikçi</th>
-                    <th>Mod</th>
-                    <th>Incoterm</th>
-                    <th>Durum</th>
-                    <th>Üretim Durumu</th>
-                    <th>Sevkiyat Adedi</th>
-                    <th>İşlem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cases.map((c) => (
-                    <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => onSelectCase(c.id)}>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-blue)' }}>
-                        {c.caseNumber}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{c.title}</td>
-                      <td style={{ color: 'var(--text-main)' }}>{c.supplierName}</td>
-                      <td>
-                        <span className="badge" style={{ background: 'rgba(51, 65, 85, 0.4)', color: 'var(--text-main)' }}>
-                          {c.defaultTransportMode || '-'}
-                        </span>
-                      </td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{c.incoterm || '-'}</td>
-                      <td>{getStatusBadge(c.status)}</td>
-                      <td>{getProductionStatusBadge(c.productionStatus)}</td>
-                      <td style={{ textAlign: 'center', fontWeight: 700 }}>{c.shipmentCount}</td>
-                      <td>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onSelectCase(c.id); }}
-                          className="btn-secondary btn-sm"
-                        >
-                          Detay & Detaylar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {errorMsg ? (
+        <ErrorState description={errorMsg} onRetry={fetchCases} />
+      ) : (
+        <>
+          <DataTable
+            columns={columns}
+            data={cases}
+            keyExtractor={(c) => c.id}
+            isLoading={loading}
+            onRowClick={(c) => onSelectCase(c.id)}
+            emptyMessage="Arama kriterlerinize uygun ithalat dosyası bulunamadı."
+          />
 
-            {/* Pagination Controls */}
-            <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                Toplam <strong>{totalCount}</strong> dosyadan <strong>{(page - 1) * pageSize + 1}</strong> - <strong>{Math.min(page * pageSize, totalCount)}</strong> arası gösteriliyor
-              </div>
+          {!loading && cases.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              onPageChange={(p) => setPage(p)}
+            />
+          )}
+        </>
+      )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  className="btn-secondary btn-sm"
-                  style={{ opacity: page <= 1 ? 0.5 : 1 }}
-                >
-                  Önceki
-                </button>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0 0.5rem', color: 'var(--text-main)' }}>
-                  Sayfa {page} / {totalPages}
-                </span>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  className="btn-secondary btn-sm"
-                  style={{ opacity: page >= totalPages ? 0.5 : 1 }}
-                >
-                  Sonraki
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Real Overlay Dialog Modal */}
       <ImportCaseCreateModal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}

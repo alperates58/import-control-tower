@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { documentService } from '../services/documentService';
 import { useAuth } from '../context/AuthContext';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Input, Select, Textarea, FormField } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
 
 interface Props {
   isOpen: boolean;
@@ -8,7 +12,7 @@ interface Props {
   onSuccess: () => void;
   scopeType?: 'ImportCase' | 'Shipment' | 'Container';
   scopeId?: string;
-  existingDocumentId?: string; // If provided, adds a new version to existing document
+  existingDocumentId?: string;
 }
 
 export const DocumentUploadModal: React.FC<Props> = ({
@@ -33,7 +37,6 @@ export const DocumentUploadModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
       setTitle('');
       setDocumentNumber('');
       setDocumentDate('');
@@ -41,10 +44,7 @@ export const DocumentUploadModal: React.FC<Props> = ({
       setNotes('');
       setFile(null);
       setErrorMsg(null);
-    } else {
-      document.body.style.overflow = 'unset';
     }
-    return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -111,139 +111,114 @@ export const DocumentUploadModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-container" style={{ maxWidth: '580px' }}>
-        <div className="modal-header">
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-            {existingDocumentId ? '➕ Yeni Evrak Versiyonu Yükle' : '📁 Yeni İthalat Evrakı Yükle'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem', cursor: 'pointer' }}>&times;</button>
-        </div>
-
-        <div className="modal-body">
-          {errorMsg && (
-            <div style={{ padding: '0.85rem 1rem', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: '8px', color: 'var(--accent-rose)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              ⚠️ {errorMsg}
-            </div>
-          )}
-
-          <form id="upload-doc-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Dosya Seçiniz (Max 25 MB) *</label>
-              <input
-                type="file"
-                required
-                accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
-                onChange={handleFileChange}
-                className="form-input"
-                style={{ width: '100%', padding: '0.5rem' }}
-              />
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.2rem' }}>
-                Desteklenen formatlar: PDF, DOCX, XLSX, PNG, JPG/JPEG.
-              </span>
-            </div>
-
-            {!existingDocumentId && (
-              <>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Evrak Başlığı *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Örn: 2026 Ticari Fatura - INV9901"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="form-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Evrak Türü *</label>
-                    <select
-                      value={documentType}
-                      onChange={(e) => setDocumentType(e.target.value)}
-                      className="form-input"
-                      style={{ width: '100%' }}
-                    >
-                      <option value="CommercialInvoice">Commercial Invoice (Ticari Fatura)</option>
-                      <option value="ProformaInvoice">Proforma Invoice</option>
-                      <option value="PackingList">Packing List (Çeki Listesi)</option>
-                      <option value="BillOfLading">Bill of Lading (Konşimento)</option>
-                      <option value="SeaWaybill">Sea Waybill</option>
-                      <option value="AirWaybill">Air Waybill (AWB)</option>
-                      <option value="CMR">CMR (Kara Taşıma Senedi)</option>
-                      <option value="CertificateOfOrigin">Certificate of Origin (Menşe)</option>
-                      <option value="ATR">A.TR Dolaşım Belgesi</option>
-                      <option value="EUR1">EUR.1 Dolaşım Belgesi</option>
-                      <option value="InsuranceCertificate">Sigorta Poliçesi</option>
-                      <option value="CustomsDeclaration">Gümrük Beyannamesi</option>
-                      <option value="MSDS">MSDS / SDS</option>
-                      <option value="Other">Diğer Belge</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Evrak / Fatura No</label>
-                    <input
-                      type="text"
-                      placeholder="Örn: INV-2026-9901"
-                      value={documentNumber}
-                      onChange={(e) => setDocumentNumber(e.target.value)}
-                      className="form-input"
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Evrak Tarihi</label>
-                    <input
-                      type="date"
-                      value={documentDate}
-                      onChange={(e) => setDocumentDate(e.target.value)}
-                      className="form-input"
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Geçerlilik Bitiş Tarihi</label>
-                    <input
-                      type="date"
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
-                      className="form-input"
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Notlar</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Evrak hakkında ek notlar..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="form-input"
-                    style={{ width: '100%', resize: 'vertical' }}
-                  />
-                </div>
-              </>
-            )}
-          </form>
-        </div>
-
-        <div className="modal-footer">
-          <button onClick={onClose} disabled={loading} className="btn-secondary">Vazgeç</button>
-          <button type="submit" form="upload-doc-form" disabled={loading || !file} className="btn-primary">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={existingDocumentId ? '➕ Yeni Evrak Versiyonu Yükle' : '📁 Yeni İthalat Evrakı Yükle'}
+      maxWidth="580px"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
+            Vazgeç
+          </Button>
+          <Button type="submit" form="upload-doc-form" variant="primary" isLoading={loading} disabled={!file}>
             {loading ? 'Yükleniyor...' : 'Evrak Yükle'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </>
+      }
+    >
+      <form id="upload-doc-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        {errorMsg && (
+          <Badge variant="rose" style={{ width: '100%', padding: '0.75rem' }}>
+            ⚠️ {errorMsg}
+          </Badge>
+        )}
+
+        <FormField label="Dosya Seçiniz (Max 25 MB) *" required helpText="Desteklenen formatlar: PDF, DOCX, XLSX, PNG, JPG/JPEG.">
+          <Input
+            type="file"
+            required
+            accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
+            onChange={handleFileChange}
+            style={{ padding: '0.4rem' }}
+          />
+        </FormField>
+
+        {!existingDocumentId && (
+          <>
+            <FormField label="Evrak Başlığı *" required>
+              <Input
+                type="text"
+                required
+                placeholder="Örn: 2026 Ticari Fatura - INV9901"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </FormField>
+
+            <div className="form-grid-2">
+              <FormField label="Evrak Türü *" required>
+                <Select
+                  value={documentType}
+                  onChange={(e) => setDocumentType(e.target.value)}
+                  options={[
+                    { value: 'CommercialInvoice', label: 'Commercial Invoice (Ticari Fatura)' },
+                    { value: 'ProformaInvoice', label: 'Proforma Invoice' },
+                    { value: 'PackingList', label: 'Packing List (Çeki Listesi)' },
+                    { value: 'BillOfLading', label: 'Bill of Lading (Konşimento)' },
+                    { value: 'SeaWaybill', label: 'Sea Waybill' },
+                    { value: 'AirWaybill', label: 'Air Waybill (AWB)' },
+                    { value: 'CMR', label: 'CMR (Kara Taşıma Senedi)' },
+                    { value: 'CertificateOfOrigin', label: 'Certificate of Origin (Menşe)' },
+                    { value: 'ATR', label: 'A.TR Dolaşım Belgesi' },
+                    { value: 'EUR1', label: 'EUR.1 Dolaşım Belgesi' },
+                    { value: 'InsuranceCertificate', label: 'Sigorta Poliçesi' },
+                    { value: 'CustomsDeclaration', label: 'Gümrük Beyannamesi' },
+                    { value: 'MSDS', label: 'MSDS / SDS' },
+                    { value: 'Other', label: 'Diğer Belge' }
+                  ]}
+                />
+              </FormField>
+
+              <FormField label="Evrak / Fatura No">
+                <Input
+                  type="text"
+                  placeholder="Örn: INV-2026-9901"
+                  value={documentNumber}
+                  onChange={(e) => setDocumentNumber(e.target.value)}
+                />
+              </FormField>
+            </div>
+
+            <div className="form-grid-2">
+              <FormField label="Evrak Tarihi">
+                <Input
+                  type="date"
+                  value={documentDate}
+                  onChange={(e) => setDocumentDate(e.target.value)}
+                />
+              </FormField>
+
+              <FormField label="Geçerlilik Bitiş Tarihi">
+                <Input
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                />
+              </FormField>
+            </div>
+
+            <FormField label="Notlar">
+              <Textarea
+                rows={2}
+                placeholder="Evrak hakkında ek notlar..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </FormField>
+          </>
+        )}
+      </form>
+    </Modal>
   );
 };

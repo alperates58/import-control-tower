@@ -160,8 +160,12 @@ describe('Frontend Phase 01 Quality Control Suite', () => {
         ok: true,
         json: async () => ({
           accessToken: 'valid-token',
-          user: { id: 'u4', email: 'admin@local.com', fullName: 'Logged Admin', roles: ['SystemAdmin'], permissions: ['dashboard.view'] }
+          user: { id: 'u4', email: 'admin@local.com', fullName: 'Logged Admin', roles: ['SystemAdmin'], permissions: ['dashboard.view'], mustChangePassword: false }
         })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ['dashboard.view']
       })
       .mockResolvedValueOnce({ ok: true });
 

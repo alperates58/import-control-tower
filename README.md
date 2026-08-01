@@ -82,6 +82,31 @@ Varsayılan Admin Hesabı (`.env` üzerinden değiştirilebilir):
 
 ---
 
+## Design System V2 (Frontend UI Bileşen Mimarisi)
+
+Uygulama arayüzü Attio (veri yoğunluğu & çekmeceler), Linear (tipografi, navigasyon & hiyerarşi) ve Stripe (operasyonel açıklık & progressive disclosure) felsefelerinden esinlenerek tamamen özgün **Design System V2** standartlarına geçirilmiştir.
+
+### Core Token Sistemi (`apps/web/src/index.css`)
+- **Yüzey ve Arka Planlar**: Dark-first SaaS teması (`--bg-app: #090d16`, `--bg-surface: #0f172a`, `--bg-card: #141e33`, `--bg-input: #1a253c`).
+- **Tipografi**: Inter (`--font-sans`) ve JetBrains Mono (`--font-mono`) tipografi hiyerarşisi.
+- **Erişilebilirlik & Focus**: `:focus-visible` ile standart 2px accent mavi odaklama çerçevesi.
+- **Responsive Layout**: 390px mobil görünümde tam ekran sidebar çekmecesi ve yatay taşmasız duyarlı tablo sarmalları (`.data-table-wrapper`).
+
+### Yeniden Kullanılabilir UI Bileşen Kataloğu (`apps/web/src/components/ui/`)
+- `<Button>` / `<IconButton>`: Varyantlar (`primary`, `secondary`, `danger`, `ghost`), `isLoading` durumları.
+- `<Input>`, `<Select>`, `<Textarea>`, `<Checkbox>`, `<FormField>`: Standartlaştırılmış form bileşenleri ve label/error slotları.
+- `<Badge>` / `<StatusBadge>`: Semantik durum rozetleri (`emerald`, `amber`, `rose`, `blue`, `cyan`, `purple`).
+- `<Card>`, `<KPICard>`, `<Section>`, `<DetailField>`: Kartlar ve detay hücreleri.
+- `<Modal>` / `<ConfirmDialog>`: Erişimli diyaloğlar, ESC tuşu kapama, focus trap.
+- `<Drawer>`: Sağdan kayan detay ve versiyon çekmeceleri.
+- `<DropdownMenu>`: `...` işlem menüleri.
+- `<DataTable>` / `<Pagination>`: Hizada veri tabloları ve sayfalama barı.
+- `<EmptyState>`, `<ErrorState>`, `<LoadingSkeleton>`: Geri bildirim ve yüklenme durumları.
+- `<PageHeader>`, `<Tabs>`, `<ActivityTimeline>`: Sayfa başlıkları ve zaman çizelgeleri.
+
+---
+
 ## Lisans
 
 Tüm hakları saklıdır. Kurumsal özel mülk yazılımdır.
+

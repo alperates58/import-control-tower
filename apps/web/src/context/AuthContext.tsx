@@ -150,8 +150,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Giriş başarısız.');
+      let errorMessage = 'Giriş başarısız.';
+      try {
+        const errData = await response.json();
+        errorMessage = errData.detail || errData.title || errorMessage;
+      } catch {
+        // Fallback for non-JSON or empty responses
+      }
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();

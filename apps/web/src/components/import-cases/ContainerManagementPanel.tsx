@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { ShipmentContainer } from '../../types/importCase';
 import { importCaseService } from '../../services/importCaseService';
 import { useAuth } from '../../context/AuthContext';
+import { Button } from '../ui/Button';
+import { Input, Select, Textarea, FormField } from '../ui/Input';
+import { DataTable, Column } from '../ui/DataTable';
+import { Badge } from '../ui/Badge';
+import { Modal } from '../ui/Modal';
+import { Section } from '../ui/Card';
 
 interface Props {
   shipmentId: string;
@@ -81,190 +87,167 @@ export const ContainerManagementPanel: React.FC<Props> = ({
 
   if (!isSeaOrMultimodal) {
     return (
-      <div style={{ padding: '1rem 1.25rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', color: 'var(--accent-amber)', fontSize: '0.88rem' }}>
+      <div style={{ padding: 'var(--space-3) var(--space-4)', background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning-border)', borderRadius: 'var(--radius-md)', color: 'var(--status-warning)', fontSize: 'var(--font-sm)' }}>
         ⚠️ Konteyner ekleme yalnızca Deniz (Sea) veya Multimodal taşımalarda geçerlidir. ({transportMode} taşımasında konteyner kullanılamaz).
       </div>
     );
   }
 
+  const columns: Column<ShipmentContainer>[] = [
+    {
+      key: 'normalizedContainerNumber',
+      header: 'Konteyner No',
+      render: (c) => (
+        <span className="font-mono" style={{ fontWeight: 'var(--weight-bold)', color: 'var(--accent-cyan)' }}>
+          {c.normalizedContainerNumber}
+        </span>
+      )
+    },
+    {
+      key: 'containerType',
+      header: 'Tip',
+      render: (c) => <Badge variant="cyan">{c.containerType}</Badge>
+    },
+    {
+      key: 'sealNumber',
+      header: 'Mühür No',
+      render: (c) => c.sealNumber || '-'
+    },
+    {
+      key: 'grossWeightKg',
+      header: 'Brüt Ağırlık',
+      render: (c) => (c.grossWeightKg ? `${c.grossWeightKg.toLocaleString()} kg` : '-')
+    },
+    {
+      key: 'status',
+      header: 'Durum',
+      render: (c) => (c.status === 'Active' ? <Badge variant="emerald">Aktif</Badge> : <Badge variant="rose">İptal Edildi</Badge>)
+    },
+    {
+      key: 'actions',
+      header: 'İşlem',
+      align: 'right',
+      render: (c) => (
+        c.status === 'Active' && (
+          <Button variant="danger" size="sm" onClick={() => handleCancelContainer(c.id)}>
+            Kaldır
+          </Button>
+        )
+      )
+    }
+  ];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
       {errorMsg && (
-        <div style={{ padding: '0.85rem 1rem', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: '8px', color: 'var(--accent-rose)', fontSize: '0.85rem' }}>
-          ⚠️ {errorMsg}
+        <div style={{ marginBottom: 'var(--space-2)' }}>
+          <Badge variant="rose" style={{ width: '100%', padding: '0.75rem' }}>
+            ⚠️ {errorMsg}
+          </Badge>
         </div>
       )}
 
-      {/* Add Container Form Card */}
-      <div className="panel" style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '1.25rem', marginBottom: 0 }}>
-        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>📦</span> Yeni Konteyner Ekle (ISO 6346 Doğrulamalı)
-        </h4>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
-          <div>
-            <label className="form-label">Konteyner No *</label>
-            <input
+      <Section title="📦 Yeni Konteyner Ekle (ISO 6346 Doğrulamalı)">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)', alignItems: 'flex-end' }}>
+          <FormField label="Konteyner No *" required>
+            <Input
               type="text"
               placeholder="Örn: CSQU3054383"
               value={containerNumber}
               onChange={(e) => setContainerNumber(e.target.value.toUpperCase())}
-              className="form-input"
-              style={{ width: '100%', fontFamily: 'var(--font-mono)' }}
+              className="font-mono"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="form-label">Konteyner Tipi *</label>
-            <select
+          <FormField label="Konteyner Tipi *" required>
+            <Select
               value={containerType}
               onChange={(e) => setContainerType(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
-            >
-              <option value="20DV">20DV (Standard)</option>
-              <option value="40DV">40DV (Standard)</option>
-              <option value="40HC">40HC (High Cube)</option>
-              <option value="45HC">45HC (High Cube)</option>
-              <option value="20RF">20RF (Reefer)</option>
-              <option value="40RF">40RF (Reefer)</option>
-              <option value="20OT">20OT (Open Top)</option>
-              <option value="40OT">40OT (Open Top)</option>
-              <option value="20FR">20FR (Flat Rack)</option>
-              <option value="40FR">40FR (Flat Rack)</option>
-            </select>
-          </div>
+              options={[
+                { value: '20DV', label: '20DV (Standard)' },
+                { value: '40DV', label: '40DV (Standard)' },
+                { value: '40HC', label: '40HC (High Cube)' },
+                { value: '45HC', label: '45HC (High Cube)' },
+                { value: '20RF', label: '20RF (Reefer)' },
+                { value: '40RF', label: '40RF (Reefer)' },
+                { value: '20OT', label: '20OT (Open Top)' },
+                { value: '40OT', label: '40OT (Open Top)' },
+                { value: '20FR', label: '20FR (Flat Rack)' },
+                { value: '40FR', label: '40FR (Flat Rack)' }
+              ]}
+            />
+          </FormField>
 
-          <div>
-            <label className="form-label">Mühür No (Seal No)</label>
-            <input
+          <FormField label="Mühür No (Seal No)">
+            <Input
               type="text"
               placeholder="Örn: SEAL-998877"
               value={sealNumber}
               onChange={(e) => setSealNumber(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="form-label">Brüt Ağırlık (KG)</label>
-            <input
+          <FormField label="Brüt Ağırlık (KG)">
+            <Input
               type="number"
               placeholder="Örn: 22000"
               value={grossWeightKg}
               onChange={(e) => setGrossWeightKg(e.target.value)}
-              className="form-input"
-              style={{ width: '100%' }}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <button
-              disabled={loading || !containerNumber}
-              onClick={() => handleAddContainer(false)}
-              className="btn-primary"
-              style={{ width: '100%', justifyContent: 'center' }}
+          <Button
+            disabled={loading || !containerNumber}
+            onClick={() => handleAddContainer(false)}
+            variant="primary"
+            isLoading={loading}
+            style={{ width: '100%', justifyContent: 'center' }}
+          >
+            + Konteyner Ekle
+          </Button>
+        </div>
+      </Section>
+
+      <DataTable
+        columns={columns}
+        data={containers}
+        keyExtractor={(c) => c.id}
+        emptyMessage="Henüz bu sevkiyata bağlı konteyner bulunmuyor."
+      />
+
+      <Modal
+        isOpen={overrideModalOpen}
+        onClose={() => setOverrideModalOpen(false)}
+        title={<span style={{ color: 'var(--status-warning)' }}>⚠️ ISO 6346 Check Digit Uyarısı</span>}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setOverrideModalOpen(false)}>
+              İptal
+            </Button>
+            <Button
+              disabled={!overrideReason.trim()}
+              onClick={() => handleAddContainer(true)}
+              variant="primary"
+              style={{ background: 'var(--status-warning)', color: '#000' }}
             >
-              {loading ? 'Ekleniyor...' : '+ Konteyner Ekle'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Containers List Table */}
-      {containers.length === 0 ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-          Henüz bu sevkiyata bağlı konteyner bulunmuyor.
-        </div>
-      ) : (
-        <div className="data-table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Konteyner No</th>
-                <th>Tip</th>
-                <th>Mühür No</th>
-                <th>Brüt Ağırlık</th>
-                <th>Durum</th>
-                <th>İşlem</th>
-              </tr>
-            </thead>
-            <tbody>
-              {containers.map((c) => (
-                <tr key={c.id}>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                    {c.normalizedContainerNumber}
-                  </td>
-                  <td><span className="badge badge-cyan">{c.containerType}</span></td>
-                  <td>{c.sealNumber || '-'}</td>
-                  <td>{c.grossWeightKg ? `${c.grossWeightKg.toLocaleString()} kg` : '-'}</td>
-                  <td>
-                    {c.status === 'Active' ? (
-                      <span className="badge badge-emerald">Aktif</span>
-                    ) : (
-                      <span className="badge badge-rose">İptal Edildi</span>
-                    )}
-                  </td>
-                  <td>
-                    {c.status === 'Active' && (
-                      <button
-                        onClick={() => handleCancelContainer(c.id)}
-                        className="btn-secondary btn-sm"
-                        style={{ color: 'var(--accent-rose)', borderColor: 'rgba(244, 63, 94, 0.3)' }}
-                      >
-                        Kaldır
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Check Digit Override Modal */}
-      {overrideModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container" style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent-amber)' }}>
-                ⚠️ ISO 6346 Check Digit Uyarısı
-              </h3>
-              <button onClick={() => setOverrideModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.4rem' }}>&times;</button>
-            </div>
-            <div className="modal-body">
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-main)', marginBottom: '1rem', lineHeight: 1.5 }}>
-                Girdiğiniz <strong>{containerNumber}</strong> konteyner numarası ISO 6346 standart kontrol basamağı algoritmasını geçemedi. Kontrol basamağını atlayıp (Override) yine de eklemek istiyorsanız bir audit gerekçesi belirtiniz.
-              </p>
-              <div className="form-group">
-                <label className="form-label">Audit Geçersiz Kılma Gerekçesi *</label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Örn: Taşıyıcı konşimentosunda geçen hatalı numara doğrulandı..."
-                  value={overrideReason}
-                  onChange={(e) => setOverrideReason(e.target.value)}
-                  className="form-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setOverrideModalOpen(false)} className="btn-secondary">İptal</button>
-              <button
-                disabled={!overrideReason.trim()}
-                onClick={() => handleAddContainer(true)}
-                className="btn-primary"
-                style={{ background: 'var(--accent-amber)', color: '#000' }}
-              >
-                Gerekçeli Onayla ve Ekle
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              Gerekçeli Onayla ve Ekle
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-main)', marginBottom: 'var(--space-4)', lineHeight: 'var(--lh-normal)' }}>
+          Girdiğiniz <strong>{containerNumber}</strong> konteyner numarası ISO 6346 standart kontrol basamağı algoritmasını geçemedi. Kontrol basamağını atlayıp (Override) yine de eklemek istiyorsanız bir audit gerekçesi belirtiniz.
+        </p>
+        <FormField label="Audit Geçersiz Kılma Gerekçesi *" required>
+          <Textarea
+            rows={3}
+            required
+            placeholder="Örn: Taşıyıcı konşimentosunda geçen hatalı numara doğrulandı..."
+            value={overrideReason}
+            onChange={(e) => setOverrideReason(e.target.value)}
+          />
+        </FormField>
+      </Modal>
     </div>
   );
 };
