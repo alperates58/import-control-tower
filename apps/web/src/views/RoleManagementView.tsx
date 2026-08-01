@@ -51,7 +51,7 @@ export const RoleManagementView: React.FC = () => {
         <div className="panel-header">
           <div className="panel-title">
             <IconRoles />
-            <span>Rol ve İzin Yönetimi (32 İzin Kataloğu)</span>
+            <span>Rol ve İzin Yönetimi (İzin Kataloğu)</span>
           </div>
           <div className="badge badge-purple" style={{ fontSize: '0.8rem' }}>
             Toplam {allPermissions.length} İzin Aktif

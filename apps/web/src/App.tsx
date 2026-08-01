@@ -16,6 +16,7 @@ import { PurchaseOrderDetailView } from './views/PurchaseOrderDetailView';
 import { ImportCaseListView } from './views/ImportCaseListView';
 import { ImportCaseDetailView } from './views/ImportCaseDetailView';
 import { DocumentListView } from './views/DocumentListView';
+import { ForceChangePasswordView } from './views/ForceChangePasswordView';
 
 import {
   IconDashboard,
@@ -58,6 +59,10 @@ const MainApp: React.FC = () => {
 
   if (!isAuthenticated) {
     return <LoginView />;
+  }
+
+  if (user?.mustChangePassword) {
+    return <ForceChangePasswordView />;
   }
 
   const menuSections = [
