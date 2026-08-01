@@ -58,7 +58,7 @@ public static class InitialAdminSeeder
             var roleManager = serviceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-            // 1. Seed 32-permission catalog
+            // 1. Seed permission catalog
             logger.LogInformation("Seeding permission catalog ({Count} items)...", PermissionsCatalog.All.Count);
             var existingPermissions = await dbContext.Permissions.ToDictionaryAsync(p => p.Code);
             foreach (var item in PermissionsCatalog.All)
@@ -78,7 +78,7 @@ public static class InitialAdminSeeder
             }
             await dbContext.SaveChangesAsync();
 
-            // 2. Seed 7 System Roles & Role-Permission Matrix
+            // 2. Seed System Roles & Role-Permission Matrix
             logger.LogInformation("Seeding system roles and role-permission matrix...");
             var roleMatrix = GetRoleMatrix();
             foreach (var (roleName, description, permCodes) in roleMatrix)
@@ -131,17 +131,19 @@ public static class InitialAdminSeeder
                     Description = "Controls global financial module visibility and API projections",
                     IsSensitive = false,
                     UpdatedAtUtc = DateTime.UtcNow,
-                    UpdatedByUserId = null // Nullable Guid for system seed
+                    UpdatedByUserId = null
                 });
                 await dbContext.SaveChangesAsync();
             }
+
+            // 4. Seed Default Document Requirements
+            await SeedDocumentRequirementsAsync(dbContext, logger);
 
             // 4. Seed Initial Admin User
             var adminEmail = configuration["SEED_ADMIN_EMAIL"] ?? "admin@controltower.local";
             var adminPassword = configuration["SEED_ADMIN_PASSWORD"] ?? "AdminSecurePassword123!";
             var adminFullName = configuration["SEED_ADMIN_FULL_NAME"] ?? "Initial System Administrator";
 
-            // Production safety check
             if (environment.IsProduction())
             {
                 if (adminEmail.Contains("example.com") || 
@@ -183,7 +185,6 @@ public static class InitialAdminSeeder
         }
         finally
         {
-            // Always release lock on the SAME open connection
             await using var unlockCommand = new NpgsqlCommand($"SELECT pg_advisory_unlock({AdvisoryLockId})", connection);
             await unlockCommand.ExecuteScalarAsync();
             await connection.CloseAsync();
@@ -200,50 +201,85 @@ public static class InitialAdminSeeder
                 PermissionsCatalog.DashboardView, PermissionsCatalog.PurchaseOrdersView,
                 PermissionsCatalog.ImportCasesView, PermissionsCatalog.ShipmentsView,
                 PermissionsCatalog.ContainersView, PermissionsCatalog.DocumentsView,
+                PermissionsCatalog.DocumentsDownload,
                 PermissionsCatalog.TasksViewAll, PermissionsCatalog.AuditView
             }),
             ("Purchasing", "Satın alma operasyon rolü", new List<string>
             {
                 PermissionsCatalog.DashboardView, PermissionsCatalog.PurchaseOrdersView,
                 PermissionsCatalog.PurchaseOrdersImport, PermissionsCatalog.PurchaseOrdersEdit,
-                PermissionsCatalog.ImportCasesView, PermissionsCatalog.ShipmentsView,
+                PermissionsCatalog.ImportCasesView, PermissionsCatalog.ImportCasesEdit,
+                PermissionsCatalog.ImportCasesAssignOrders, PermissionsCatalog.ShipmentsView,
                 PermissionsCatalog.ContainersView, PermissionsCatalog.DocumentsView,
-                PermissionsCatalog.DocumentsUpload, PermissionsCatalog.TasksViewOwn,
-                PermissionsCatalog.TasksComplete
+                PermissionsCatalog.DocumentsUpload, PermissionsCatalog.DocumentsDownload,
+                PermissionsCatalog.DocumentsVersion,
+                PermissionsCatalog.TasksViewOwn, PermissionsCatalog.TasksComplete
             }),
             ("ImportOperations", "İthalat operasyon sorumlusu", new List<string>
             {
                 PermissionsCatalog.DashboardView, PermissionsCatalog.PurchaseOrdersView,
                 PermissionsCatalog.ImportCasesView, PermissionsCatalog.ImportCasesCreate,
-                PermissionsCatalog.ImportCasesEdit, PermissionsCatalog.ImportCasesClose,
-                PermissionsCatalog.ShipmentsView, PermissionsCatalog.ShipmentsEdit,
+                PermissionsCatalog.ImportCasesEdit, PermissionsCatalog.ImportCasesAssignOrders,
+                PermissionsCatalog.ImportCasesClose, PermissionsCatalog.ImportCasesCancel,
+                PermissionsCatalog.ShipmentsView, PermissionsCatalog.ShipmentsCreate,
+                PermissionsCatalog.ShipmentsEdit, PermissionsCatalog.ShipmentsCancel,
                 PermissionsCatalog.ContainersView, PermissionsCatalog.ContainersEdit,
+                PermissionsCatalog.MilestonesEdit,
                 PermissionsCatalog.DocumentsView, PermissionsCatalog.DocumentsUpload,
-                PermissionsCatalog.DocumentsDelete, PermissionsCatalog.TasksViewOwn,
-                PermissionsCatalog.TasksViewAll, PermissionsCatalog.TasksAssign,
-                PermissionsCatalog.TasksComplete
+                PermissionsCatalog.DocumentsDownload, PermissionsCatalog.DocumentsVersion,
+                PermissionsCatalog.DocumentsCancel, PermissionsCatalog.DocumentsDelete,
+                PermissionsCatalog.TasksViewOwn, PermissionsCatalog.TasksViewAll,
+                PermissionsCatalog.TasksAssign, PermissionsCatalog.TasksComplete
             }),
             ("Planning", "Üretim ve ihtiyaç planlama", new List<string>
             {
                 PermissionsCatalog.DashboardView, PermissionsCatalog.PurchaseOrdersView,
                 PermissionsCatalog.ImportCasesView, PermissionsCatalog.ShipmentsView,
                 PermissionsCatalog.ContainersView, PermissionsCatalog.DocumentsView,
+                PermissionsCatalog.DocumentsDownload,
                 PermissionsCatalog.TasksViewOwn, PermissionsCatalog.TasksComplete
             }),
             ("Finance", "Finansal operasyon ve ödemeler", new List<string>
             {
                 PermissionsCatalog.DashboardView, PermissionsCatalog.PurchaseOrdersView,
                 PermissionsCatalog.ImportCasesView, PermissionsCatalog.ShipmentsView,
-                PermissionsCatalog.DocumentsView, PermissionsCatalog.TasksViewOwn,
-                PermissionsCatalog.FinancialView, PermissionsCatalog.FinancialEdit
+                PermissionsCatalog.DocumentsView, PermissionsCatalog.DocumentsDownload,
+                PermissionsCatalog.TasksViewOwn, PermissionsCatalog.FinancialView,
+                PermissionsCatalog.FinancialEdit
             }),
             ("Viewer", "Salt okunur izleyici rolü", new List<string>
             {
                 PermissionsCatalog.DashboardView, PermissionsCatalog.PurchaseOrdersView,
                 PermissionsCatalog.ImportCasesView, PermissionsCatalog.ShipmentsView,
                 PermissionsCatalog.ContainersView, PermissionsCatalog.DocumentsView,
+                PermissionsCatalog.DocumentsDownload,
                 PermissionsCatalog.TasksViewOwn
             })
         };
+    }
+
+    private static async Task SeedDocumentRequirementsAsync(ApplicationDbContext dbContext, ILogger logger)
+    {
+        if (await dbContext.DocumentRequirements.AnyAsync()) return;
+
+        logger.LogInformation("Seeding default DocumentRequirements...");
+        var defaults = new List<DocumentRequirement>
+        {
+            new() { ScopeType = "ImportCase", TransportMode = null, DocumentType = "ProformaInvoice", IsRequired = true, Description = "Sipariş proforma faturası", SortOrder = 1 },
+            new() { ScopeType = "ImportCase", TransportMode = null, DocumentType = "CommercialInvoice", IsRequired = true, Description = "Ticari fatura", SortOrder = 2 },
+            new() { ScopeType = "Shipment", TransportMode = "Sea", DocumentType = "CommercialInvoice", IsRequired = true, Description = "Deniz sevkiyatı ticari faturası", SortOrder = 1 },
+            new() { ScopeType = "Shipment", TransportMode = "Sea", DocumentType = "PackingList", IsRequired = true, Description = "Çeki listesi", SortOrder = 2 },
+            new() { ScopeType = "Shipment", TransportMode = "Sea", DocumentType = "BillOfLading", IsRequired = true, Description = "Deniz konşimentosu (B/L)", SortOrder = 3 },
+            new() { ScopeType = "Shipment", TransportMode = "Sea", DocumentType = "CertificateOfOrigin", IsRequired = true, Description = "Menşe şehadetnamesi", SortOrder = 4 },
+            new() { ScopeType = "Shipment", TransportMode = "Air", DocumentType = "CommercialInvoice", IsRequired = true, Description = "Hava sevkiyatı ticari faturası", SortOrder = 1 },
+            new() { ScopeType = "Shipment", TransportMode = "Air", DocumentType = "PackingList", IsRequired = true, Description = "Çeki listesi", SortOrder = 2 },
+            new() { ScopeType = "Shipment", TransportMode = "Air", DocumentType = "AirWaybill", IsRequired = true, Description = "Hava taşıma senedi (AWB)", SortOrder = 3 },
+            new() { ScopeType = "Shipment", TransportMode = "Road", DocumentType = "CommercialInvoice", IsRequired = true, Description = "Kara sevkiyatı ticari faturası", SortOrder = 1 },
+            new() { ScopeType = "Shipment", TransportMode = "Road", DocumentType = "PackingList", IsRequired = true, Description = "Çeki listesi", SortOrder = 2 },
+            new() { ScopeType = "Shipment", TransportMode = "Road", DocumentType = "CMR", IsRequired = true, Description = "Kara taşıma senedi (CMR)", SortOrder = 3 },
+        };
+
+        dbContext.DocumentRequirements.AddRange(defaults);
+        await dbContext.SaveChangesAsync();
     }
 }

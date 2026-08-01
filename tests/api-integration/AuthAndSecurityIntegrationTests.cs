@@ -391,7 +391,7 @@ public class AuthAndSecurityIntegrationTests
 
         var db = services.GetRequiredService<ApplicationDbContext>();
         var permCount = await db.Permissions.CountAsync();
-        Assert.Equal(32, permCount);
+        Assert.Equal(PermissionsCatalog.All.Count, permCount);
     }
 
     [Fact]

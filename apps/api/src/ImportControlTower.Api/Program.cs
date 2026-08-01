@@ -24,7 +24,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    Log.Information("Starting Import Control Tower Web API (Phase 01 - Identity & Admin)...");
+    Log.Information("Starting Import Control Tower Web API (Phase 03 - Import Cases & Shipments)...");
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -69,10 +69,20 @@ try
     builder.Services.AddScoped<IAuditLogService, AuditLogService>();
     builder.Services.AddScoped<IExcelParserService, ExcelParserService>();
 
-    // Multipart Form Options for File Upload (15 MB Max)
+    // Phase 03 & 04 Services
+    builder.Services.AddSingleton<ITimezoneService, TimezoneService>();
+    builder.Services.AddSingleton<IContainerValidationService, ContainerValidationService>();
+    builder.Services.AddSingleton<IDocumentNumberGenerator, DocumentNumberGenerator>();
+    builder.Services.AddScoped<IIdempotencyService, IdempotencyService>();
+    builder.Services.AddScoped<IImportCaseService, ImportCaseService>();
+    builder.Services.AddScoped<IShipmentService, ShipmentService>();
+    builder.Services.AddSingleton<IObjectStorageService, S3StorageService>();
+    builder.Services.AddScoped<DocumentService>();
+
+    // Multipart Form Options for File Upload (25 MB Max)
     builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
     {
-        options.MultipartBodyLengthLimit = 15_728_640;
+        options.MultipartBodyLengthLimit = 26_214_400;
     });
 
     // Authentication & JWT Bearer

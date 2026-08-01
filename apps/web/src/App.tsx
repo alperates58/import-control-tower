@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { setImportCaseServiceFetch } from './services/importCaseService';
+import { setDocumentServiceFetch } from './services/documentService';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginView } from './views/LoginView';
 import { UserManagementView } from './views/UserManagementView';
@@ -11,6 +13,10 @@ import { ImportPreviewView } from './views/ImportPreviewView';
 import { ImportHistoryView } from './views/ImportHistoryView';
 import { PurchaseOrderListView } from './views/PurchaseOrderListView';
 import { PurchaseOrderDetailView } from './views/PurchaseOrderDetailView';
+import { ImportCaseListView } from './views/ImportCaseListView';
+import { ImportCaseDetailView } from './views/ImportCaseDetailView';
+import { DocumentListView } from './views/DocumentListView';
+
 import {
   IconDashboard,
   IconOrders,
@@ -28,10 +34,18 @@ import {
 } from './components/Icons';
 
 const MainApp: React.FC = () => {
-  const { user, isAuthenticated, isBootstrapping, logout, hasPermission } = useAuth();
+  const { user, isAuthenticated, isBootstrapping, logout, hasPermission, authenticatedFetch } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setImportCaseServiceFetch(authenticatedFetch);
+      setDocumentServiceFetch(authenticatedFetch);
+    }
+  }, [isAuthenticated, authenticatedFetch]);
 
   if (isBootstrapping) {
     return (
@@ -80,6 +94,7 @@ const MainApp: React.FC = () => {
     if (activeTab === 'profile') return 'Kullanıcı Profili';
     if (activeTab === 'po-preview') return 'İçe Aktarma Ön İzlemesi';
     if (activeTab === 'po-detail') return 'Sipariş Detayı';
+    if (activeTab === 'case-detail') return 'İthalat Dosya Detayı';
     return 'Genel Bakış';
   };
 
@@ -97,7 +112,7 @@ const MainApp: React.FC = () => {
           </div>
           <div className="brand-title-group">
             <h1>Control Tower</h1>
-            <span>Import Tower v0.2</span>
+            <span>Import Tower v0.3</span>
           </div>
         </div>
 
@@ -198,26 +213,36 @@ const MainApp: React.FC = () => {
               <div className="panel">
                 <div className="panel-header">
                   <div className="panel-title">
-                    <IconDashboard />
-                    <span>Faz 02 — Excel Sipariş İçe Aktarma Aktif</span>
+                    <IconCases />
+                    <span>Faz 03 — İthalat Dosyaları ve Sevkiyat Takibi Aktif</span>
                   </div>
                 </div>
                 <div style={{ color: '#94a3b8', lineHeight: 1.6, fontSize: '0.95rem' }}>
                   <p style={{ marginBottom: '1rem' }}>
-                    Açık satın alma siparişlerinizi Excel (.xlsx) üzerinden güvenli ve transactional biçimde yüklemek için sol menüdeki <strong>Excel İçe Aktarma</strong> sekmesini kullanabilirsiniz.
+                    İthalat dosyası oluşturma, sipariş kalemi bağlama/tahsis etme, sevkiyat takibi ve ISO 6346 konteyner yönetimi için sol menüdeki <strong>İthalat Dosyaları</strong> sekmesini kullanabilirsiniz.
                   </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
-                    <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-                      <div style={{ fontWeight: 600, color: '#38bdf8', marginBottom: '0.4rem' }}>📊 Forward-Only ExcelDataReader</div>
-                      <div style={{ fontSize: '0.85rem' }}>Bütün workbook belleğe yüklenmeden yüksek hızlı veri okuma sağlandı.</div>
-                    </div>
-                    <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                      <div style={{ fontWeight: 600, color: '#10b981', marginBottom: '0.4rem' }}>🛡️ Idempotent & Single Transaction</div>
-                      <div style={{ fontSize: '0.85rem' }}>Tek transaction ile veri bütünlüğü ve idempotency request takibi kuruldu.</div>
-                    </div>
-                  </div>
                 </div>
               </div>
+            </ProtectedRoute>
+          )}
+
+          {(activeTab === 'import-cases' || activeTab === 'shipments' || activeTab === 'containers') && (
+            <ProtectedRoute requiredPermission={activeTab === 'shipments' ? 'shipments.view' : activeTab === 'containers' ? 'containers.view' : 'importcases.view'}>
+              <ImportCaseListView
+                onSelectCase={(caseId) => {
+                  setSelectedCaseId(caseId);
+                  setActiveTab('case-detail');
+                }}
+              />
+            </ProtectedRoute>
+          )}
+
+          {activeTab === 'case-detail' && selectedCaseId && (
+            <ProtectedRoute requiredPermission="importcases.view">
+              <ImportCaseDetailView
+                caseId={selectedCaseId}
+                onBack={() => setActiveTab('import-cases')}
+              />
             </ProtectedRoute>
           )}
 
@@ -295,7 +320,13 @@ const MainApp: React.FC = () => {
             <ProfileView />
           )}
 
-          {!['dashboard', 'po-import', 'po-preview', 'po-history', 'purchase-orders', 'po-detail', 'users', 'roles', 'audit', 'profile'].includes(activeTab) && (
+          {activeTab === 'documents' && (
+            <ProtectedRoute requiredPermission="documents.view">
+              <DocumentListView />
+            </ProtectedRoute>
+          )}
+
+          {!['dashboard', 'import-cases', 'shipments', 'containers', 'case-detail', 'documents', 'po-import', 'po-preview', 'po-history', 'purchase-orders', 'po-detail', 'users', 'roles', 'audit', 'profile'].includes(activeTab) && (
             <div className="panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📦</div>
               <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '0.5rem' }}>

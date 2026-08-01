@@ -20,6 +20,27 @@ services:
     networks:
       - ict-network
 
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: ict-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:-minio_password123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ict-network
+
   api:
     build:
       context: .
@@ -36,8 +57,19 @@ services:
       SEED_ADMIN_FULL_NAME: ${SEED_ADMIN_FULL_NAME:-Initial System Administrator}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
       FINANCIAL_MODULE_ENABLED: ${FINANCIAL_MODULE_ENABLED:-false}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-S3}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://minio:9000}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-import-control-tower-documents}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minio_admin}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minio_password123}
+      STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
+      STORAGE_SIGNED_URL_LIFETIME_MINUTES: ${STORAGE_SIGNED_URL_LIFETIME_MINUTES:-15}
+      STORAGE_MAX_UPLOAD_MB: ${STORAGE_MAX_UPLOAD_MB:-25}
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
@@ -93,6 +125,8 @@ services:
 volumes:
   postgres_data:
     name: ict_postgres_data
+  minio_data:
+    name: ict_minio_data
 
 networks:
   ict-network:

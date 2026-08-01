@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ImportControlTower.Domain.Constants;
 
 public static class PermissionsCatalog
@@ -10,51 +12,61 @@ public static class PermissionsCatalog
     public const string PurchaseOrdersImport = "purchaseorders.import";
     public const string PurchaseOrdersEdit = "purchaseorders.edit";
 
-    // 3. Import Cases (4)
+    // 3. Import Cases (6)
     public const string ImportCasesView = "importcases.view";
     public const string ImportCasesCreate = "importcases.create";
     public const string ImportCasesEdit = "importcases.edit";
+    public const string ImportCasesAssignOrders = "importcases.assignorders";
     public const string ImportCasesClose = "importcases.close";
+    public const string ImportCasesCancel = "importcases.cancel";
 
-    // 4. Shipments (2)
+    // 4. Shipments (4)
     public const string ShipmentsView = "shipments.view";
+    public const string ShipmentsCreate = "shipments.create";
     public const string ShipmentsEdit = "shipments.edit";
+    public const string ShipmentsCancel = "shipments.cancel";
 
     // 5. Containers (2)
     public const string ContainersView = "containers.view";
     public const string ContainersEdit = "containers.edit";
 
-    // 6. Documents (3)
+    // 6. Milestones (1)
+    public const string MilestonesEdit = "milestones.edit";
+
+    // 7. Documents (5)
     public const string DocumentsView = "documents.view";
     public const string DocumentsUpload = "documents.upload";
+    public const string DocumentsDownload = "documents.download";
+    public const string DocumentsVersion = "documents.version";
+    public const string DocumentsCancel = "documents.cancel";
     public const string DocumentsDelete = "documents.delete";
 
-    // 7. Tasks (4)
+    // 8. Tasks (4)
     public const string TasksViewOwn = "tasks.view_own";
     public const string TasksViewAll = "tasks.view_all";
     public const string TasksAssign = "tasks.assign";
     public const string TasksComplete = "tasks.complete";
 
-    // 8. Users (4)
+    // 9. Users (4)
     public const string UsersView = "users.view";
     public const string UsersCreate = "users.create";
     public const string UsersEdit = "users.edit";
     public const string UsersDisable = "users.disable";
 
-    // 9. Roles (4)
+    // 10. Roles (4)
     public const string RolesView = "roles.view";
     public const string RolesCreate = "roles.create";
     public const string RolesEdit = "roles.edit";
     public const string RolesDelete = "roles.delete";
 
-    // 10. Settings (2)
+    // 11. Settings (2)
     public const string SettingsView = "settings.view";
     public const string SettingsManage = "settings.manage";
 
-    // 11. Audit (1)
+    // 12. Audit (1)
     public const string AuditView = "audit.view";
 
-    // 12. Financial (2)
+    // 13. Financial (2)
     public const string FinancialView = "financial.view";
     public const string FinancialEdit = "financial.edit";
 
@@ -69,16 +81,25 @@ public static class PermissionsCatalog
         new(ImportCasesView, "İthalat Dosyaları", "İthalat dosyalarını görüntüleme"),
         new(ImportCasesCreate, "İthalat Dosyaları", "Yeni ithalat dosyası açma"),
         new(ImportCasesEdit, "İthalat Dosyaları", "İthalat dosyası güncelleme"),
+        new(ImportCasesAssignOrders, "İthalat Dosyaları", "Sipariş bağlama ve tahsis yapma"),
         new(ImportCasesClose, "İthalat Dosyaları", "İthalat dosyasını kapatma"),
+        new(ImportCasesCancel, "İthalat Dosyaları", "İthalat dosyasını iptal etme"),
 
         new(ShipmentsView, "Sevkiyatlar", "Sevkiyat durumlarını izleme"),
+        new(ShipmentsCreate, "Sevkiyatlar", "Yeni sevkiyat oluşturma"),
         new(ShipmentsEdit, "Sevkiyatlar", "Sevkiyat güncelleme"),
+        new(ShipmentsCancel, "Sevkiyatlar", "Sevkiyat iptal etme / abort etme"),
 
         new(ContainersView, "Konteynerler", "Konteyner takibi yapma"),
         new(ContainersEdit, "Konteynerler", "Konteyner veri girişi"),
 
+        new(MilestonesEdit, "Milestones", "Kilometre taşı düzenleme"),
+
         new(DocumentsView, "Belgeler", "İthalat evraklarını görüntüleme"),
         new(DocumentsUpload, "Belgeler", "Yeni evrak yükleme"),
+        new(DocumentsDownload, "Belgeler", "Evrak indirme ve geçici bağlantı üretme"),
+        new(DocumentsVersion, "Belgeler", "Evrak yeni versiyon yükleme"),
+        new(DocumentsCancel, "Belgeler", "Evrak iptal etme"),
         new(DocumentsDelete, "Belgeler", "Evrak silme"),
 
         new(TasksViewOwn, "Görevler", "Kendi görevlerini görüntüleme"),

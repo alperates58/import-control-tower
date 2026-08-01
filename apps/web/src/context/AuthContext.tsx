@@ -23,7 +23,7 @@ interface AuthContextType {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   hasPermission: (permissionCode: string) => boolean;
   hasRole: (roleName: string) => boolean;
-  authenticatedFetch: (url: string, init?: RequestInit) => Promise<Response>;
+  authenticatedFetch: (url: string | URL | Request, init?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const authenticatedFetch = async (url: string, init?: RequestInit): Promise<Response> => {
+  const authenticatedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
     let token = accessToken;
 
     if (!token) {

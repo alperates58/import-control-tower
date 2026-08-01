@@ -5,11 +5,67 @@ import { ColumnMappingModal } from '../components/ColumnMappingModal';
 import { ImportStatusBadge } from '../components/ImportStatusBadge';
 import { PurchaseOrderListView } from '../views/PurchaseOrderListView';
 import { PurchaseOrderDetailView } from '../views/PurchaseOrderDetailView';
+import { AuthProvider } from '../context/AuthContext';
 
 describe('Frontend Phase 02 Component Suite', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    window.fetch = vi.fn();
+    window.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/v1/purchase-orders/po-1')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            id: 'po-1',
+            orderNumber: 'PO-2026-0001',
+            supplierName: 'ABC Tedarik A.S.',
+            orderDate: '2026-04-15T00:00:00Z',
+            status: 'Open',
+            source: 'ExcelImport',
+            lines: [
+              {
+                id: 'l-1',
+                lineNumber: 1,
+                stockCode: 'STK-001',
+                stockName: 'Malzeme A',
+                orderedQuantity: 100,
+                remainingQuantity: 50,
+                sasDate: '2026-04-20T00:00:00Z'
+              }
+            ]
+          })
+        });
+      }
+
+      if (url.includes('/api/v1/purchase-orders')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                id: 'po-1',
+                orderNumber: 'PO-2026-0001',
+                supplierName: 'ABC Tedarik A.S.',
+                orderDate: '2026-04-15T00:00:00Z',
+                status: 'Open',
+                source: 'ExcelImport',
+                lineCount: 2,
+                totalOrderedQuantity: 100,
+                totalRemainingQuantity: 50
+              }
+            ],
+            totalCount: 1,
+            page: 1,
+            pageSize: 15,
+            totalPages: 1
+          })
+        });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({})
+      });
+    });
   });
 
   it('1. FileUploader - renders drag & drop area and validates xlsx file', () => {
@@ -52,30 +108,11 @@ describe('Frontend Phase 02 Component Suite', () => {
   });
 
   it('4. PurchaseOrderListView - renders purchase orders without financial headers', async () => {
-    (window.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        items: [
-          {
-            id: 'po-1',
-            orderNumber: 'PO-2026-0001',
-            supplierName: 'ABC Tedarik A.S.',
-            orderDate: '2026-04-15T00:00:00Z',
-            status: 'Open',
-            source: 'ExcelImport',
-            lineCount: 2,
-            totalOrderedQuantity: 100,
-            totalRemainingQuantity: 50
-          }
-        ],
-        totalCount: 1,
-        page: 1,
-        pageSize: 15,
-        totalPages: 1
-      })
-    });
-
-    render(<PurchaseOrderListView onSelectOrder={vi.fn()} />);
+    render(
+      <AuthProvider>
+        <PurchaseOrderListView onSelectOrder={vi.fn()} />
+      </AuthProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('PO-2026-0001')).toBeInTheDocument();
@@ -89,30 +126,11 @@ describe('Frontend Phase 02 Component Suite', () => {
   });
 
   it('5. PurchaseOrderDetailView - renders order detail with zero financial fields', async () => {
-    (window.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        id: 'po-1',
-        orderNumber: 'PO-2026-0001',
-        supplierName: 'ABC Tedarik A.S.',
-        orderDate: '2026-04-15T00:00:00Z',
-        status: 'Open',
-        source: 'ExcelImport',
-        lines: [
-          {
-            id: 'l-1',
-            lineNumber: 1,
-            stockCode: 'STK-001',
-            stockName: 'Malzeme A',
-            orderedQuantity: 100,
-            remainingQuantity: 50,
-            sasDate: '2026-04-20T00:00:00Z'
-          }
-        ]
-      })
-    });
-
-    render(<PurchaseOrderDetailView orderId="po-1" onBack={vi.fn()} />);
+    render(
+      <AuthProvider>
+        <PurchaseOrderDetailView orderId="po-1" onBack={vi.fn()} />
+      </AuthProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Sipariş No: PO-2026-0001')).toBeInTheDocument();
