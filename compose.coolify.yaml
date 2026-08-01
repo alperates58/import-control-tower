@@ -1,0 +1,98 @@
+name: import-control-tower
+
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: import_control_tower_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/18/docker
+    volumes:
+      - /data/import-control-tower/db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ict-internal-network
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: import_control_tower_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - /data/import-control-tower/minio:/data
+    networks:
+      - ict-internal-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: import_control_tower_api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      JWT_SECRET: ${JWT_SECRET}
+      REFRESH_TOKEN_PEPPER: ${REFRESH_TOKEN_PEPPER}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_ADMIN_FULL_NAME: ${SEED_ADMIN_FULL_NAME:-Production System Administrator}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://import.alperates.com.tr}
+      FINANCIAL_MODULE_ENABLED: ${FINANCIAL_MODULE_ENABLED:-false}
+      STORAGE_PROVIDER: S3
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-import-control-tower-documents}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      STORAGE_FORCE_PATH_STYLE: "true"
+      STORAGE_SIGNED_URL_LIFETIME_MINUTES: ${STORAGE_SIGNED_URL_LIFETIME_MINUTES:-15}
+      STORAGE_MAX_UPLOAD_MB: ${STORAGE_MAX_UPLOAD_MB:-25}
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ict-internal-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: import_control_tower_web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - coolify
+      - ict-internal-network
+
+networks:
+  coolify:
+    external: true
+  ict-internal-network:
+    name: ict-internal-network
+    driver: bridge
