@@ -395,6 +395,10 @@ const MainApp: React.FC = () => {
               <PurchaseOrderDetailView
                 orderId={selectedOrderId}
                 onBack={() => setActiveTab('purchase-orders')}
+                onNavigateToCase={(caseId) => {
+                  setSelectedCaseId(caseId);
+                  setActiveTab('case-detail');
+                }}
               />
             </ProtectedRoute>
           )}
