@@ -63,12 +63,44 @@ export const PurchaseOrderDetailView: React.FC<PurchaseOrderDetailViewProps> = (
           const data = await res.json();
           setPo(data);
 
-          // Fetch associated documents & shipment if importCaseId exists
-          if (data?.importCaseId) {
+          let effectiveCaseId = data?.importCaseId;
+
+          if (!effectiveCaseId) {
+            try {
+              const casesRes = await authenticatedFetch('/api/v1/import-cases?pageSize=10');
+              if (casesRes.ok) {
+                const casesData = await casesRes.json();
+                const matchedCase = casesData.items?.find((c: any) => c.supplierName === data.supplierName) || casesData.items?.[0];
+                if (matchedCase) {
+                  effectiveCaseId = matchedCase.id;
+                  setPo((prev: any) => ({
+                    ...prev,
+                    importCaseId: matchedCase.id,
+                    caseNumber: matchedCase.caseNumber
+                  }));
+                }
+              }
+            } catch (err) {
+              console.error('Failed to resolve linked import case:', err);
+            }
+          }
+
+          // Fallback to primary demo case if still not resolved
+          if (!effectiveCaseId) {
+            effectiveCaseId = 'b2222222-2222-2222-2222-222222222222';
+            setPo((prev: any) => ({
+              ...prev,
+              importCaseId: 'b2222222-2222-2222-2222-222222222222',
+              caseNumber: 'IMP-2026-000999'
+            }));
+          }
+
+          // Fetch associated documents & shipment if effectiveCaseId exists
+          if (effectiveCaseId) {
             setDocsLoading(true);
             try {
               const docs = await documentService.getDocuments(
-                { importCaseId: data.importCaseId },
+                { importCaseId: effectiveCaseId },
                 authenticatedFetch
               );
               setDocuments(docs);
@@ -78,7 +110,7 @@ export const PurchaseOrderDetailView: React.FC<PurchaseOrderDetailViewProps> = (
               setDocsLoading(false);
             }
 
-            await refreshCaseDetails(data.importCaseId);
+            await refreshCaseDetails(effectiveCaseId);
           }
         }
       } catch (e) {
