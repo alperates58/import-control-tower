@@ -70,7 +70,9 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - ict-internal-network
+      ict-internal-network:
+        aliases:
+          - import-control-tower-api-internal
 
   web:
     build:
