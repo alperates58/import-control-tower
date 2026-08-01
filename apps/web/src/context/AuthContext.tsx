@@ -18,6 +18,7 @@ interface AuthContextType {
   accessToken: string | null;
   isAuthenticated: boolean;
   isBootstrapping: boolean;
+  catalogPermissionCount: number | null;
   login: (usernameOrEmail: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -34,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(true);
+  const [catalogPermissionCount, setCatalogPermissionCount] = useState<number | null>(null);
 
   const performRefreshToken = async (): Promise<string | null> => {
     if (refreshPromise) {
@@ -53,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!response.ok) {
           setUser(null);
           setAccessToken(null);
+          setCatalogPermissionCount(null);
           return null;
         }
 
@@ -63,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err) {
         setUser(null);
         setAccessToken(null);
+        setCatalogPermissionCount(null);
         return null;
       } finally {
         refreshPromise = null;
@@ -79,6 +83,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     bootstrap();
   }, []);
+
+  const authenticatedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    let token = accessToken;
+
+    if (!token) {
+      token = await performRefreshToken();
+    }
+
+    const headers = new Headers(init?.headers || {});
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    let response = await fetch(url, { ...init, headers });
+
+    if (response.status === 401) {
+      // Retry once after refresh
+      const newToken = await performRefreshToken();
+      if (newToken) {
+        headers.set('Authorization', `Bearer ${newToken}`);
+        response = await fetch(url, { ...init, headers });
+      }
+    }
+
+    return response;
+  };
+
+  useEffect(() => {
+    if (!user || user.mustChangePassword) {
+      setCatalogPermissionCount(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchCatalogCount = async () => {
+      try {
+        const res = await authenticatedFetch('/api/v1/admin/permissions');
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setCatalogPermissionCount(data.length);
+          }
+        } else if (isMounted) {
+          setCatalogPermissionCount(null);
+        }
+      } catch {
+        if (isMounted) {
+          setCatalogPermissionCount(null);
+        }
+      }
+    };
+
+    fetchCatalogCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, user?.mustChangePassword]);
 
   const login = async (usernameOrEmail: string, password: string) => {
     const response = await fetch('/api/v1/auth/login', {
@@ -109,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setUser(null);
       setAccessToken(null);
+      setCatalogPermissionCount(null);
     }
   };
 
@@ -129,32 +192,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const authenticatedFetch = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
-    let token = accessToken;
-
-    if (!token) {
-      token = await performRefreshToken();
-    }
-
-    const headers = new Headers(init?.headers || {});
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    let response = await fetch(url, { ...init, headers });
-
-    if (response.status === 401) {
-      // Retry once after refresh
-      const newToken = await performRefreshToken();
-      if (newToken) {
-        headers.set('Authorization', `Bearer ${newToken}`);
-        response = await fetch(url, { ...init, headers });
-      }
-    }
-
-    return response;
-  };
-
   const hasPermission = (permissionCode: string): boolean => {
     if (!user) return false;
     if (user.roles.includes('SystemAdmin')) return true;
@@ -173,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         accessToken,
         isAuthenticated: !!user,
         isBootstrapping,
+        catalogPermissionCount,
         login,
         logout,
         changePassword,

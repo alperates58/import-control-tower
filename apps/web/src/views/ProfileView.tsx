@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export const ProfileView: React.FC = () => {
-  const { user, changePassword } = useAuth();
+  const { user, changePassword, catalogPermissionCount } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
@@ -59,7 +59,9 @@ export const ProfileView: React.FC = () => {
           <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Yetkili İzin Sayısı</div>
             <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#10b981', marginTop: '0.2rem' }}>
-              {user.roles.includes('SystemAdmin') ? 'Tam Yetki (32/32)' : `${user.permissions.length} İzin`}
+              {user.roles.includes('SystemAdmin')
+                ? (catalogPermissionCount !== null ? `Tam Yetki (${user.permissions.length}/${catalogPermissionCount})` : 'Tam Yetki')
+                : (catalogPermissionCount !== null ? `${user.permissions.length} / ${catalogPermissionCount} İzin` : `${user.permissions.length} İzin`)}
             </div>
           </div>
         </div>

@@ -35,7 +35,7 @@ import {
 } from './components/Icons';
 
 const MainApp: React.FC = () => {
-  const { user, isAuthenticated, isBootstrapping, logout, hasPermission, authenticatedFetch } = useAuth();
+  const { user, isAuthenticated, isBootstrapping, logout, hasPermission, authenticatedFetch, catalogPermissionCount } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -210,8 +210,16 @@ const MainApp: React.FC = () => {
                     <span className="kpi-title">Toplam İzin</span>
                     <div className="kpi-icon-box"><IconAudit /></div>
                   </div>
-                  <div className="kpi-value" style={{ color: '#10b981' }}>{user?.permissions.length} / 32</div>
-                  <div className="kpi-subtext">Katalog İzin Sayısı Doğrulandı</div>
+                  <div className="kpi-value" style={{ color: '#10b981' }}>
+                    {catalogPermissionCount !== null
+                      ? `${user?.permissions.length} / ${catalogPermissionCount}`
+                      : `${user?.permissions.length} İzin`}
+                  </div>
+                  <div className="kpi-subtext">
+                    {user?.roles.includes('SystemAdmin')
+                      ? 'Katalog İzinlerinin Tamamı Aktif'
+                      : 'Aktif İzin Sayısı'}
+                  </div>
                 </div>
               </div>
 
